@@ -1,3 +1,35 @@
 .App {
-  text-align: center;
+  display: flex;
+  flex-direction: row; /* Asegura que los elementos estén en fila */
+  height: 100vh; /* Ocupa toda la pantalla verticalmente */
+}
+
+.sidebar {
+  width: 250px; /* Ancho fijo para la barra lateral */
+  background-color: #f4f4f4;
+  padding: 20px;
+  height: 100%; /* Asegura que ocupe toda la altura */
+}
+
+.content {
+  flex: 1; /* Ocupa el resto del espacio disponible */
+  padding: 20px;
+  overflow-y: auto; /* Permite hacer scroll si el contenido es muy grande */
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.MuiTable-root {
+  width: 100%;
+}
+
+.MuiTableCell-root {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
 }
