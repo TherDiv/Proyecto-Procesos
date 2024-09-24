@@ -1,24 +1,33 @@
-import React from 'react';
-import { Button, List, ListItem, ListItemText } from '@mui/material';
+import React from "react";
+import "../App.css";
+import { SidebarData } from "./SidebarData";
 
-const Sidebar = () => {
-  const sections = [
-    'Vista General', 'Asistencias', 'Usuarios', 'Financiero',
-    'Horarios', 'Trabajadores', 'Mantenimiento'
-  ];
-
-  return (
-    <div className="sidebar">
-      <h2>GESTOR GYM VALENCIA</h2>
-      <List>
-        {sections.map((section, index) => (
-          <ListItem button key={index}>
-            <ListItemText primary={section} />
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-};
+function Sidebar() {
+    return (
+        <div className="Sidebar">
+            {/* Texto añadido arriba del sidebar */}   
+            <ul className="SidebarList">
+            <div className="sidebar-header">
+                Gestor Gim Valencia
+            </div>
+                {SidebarData.map((val, key) => {
+                    return (
+                        <li 
+                            key={key}
+                            className="row"
+                            id={window.location.pathname == val.link ? "active" : ""}
+                            onClick={() => {
+                                window.location.pathname = val.link;
+                            }}
+                        >
+                            <div id="icon">{val.icon}</div>
+                            <div id="title">{val.title}</div>
+                        </li>
+                    );
+                })}
+            </ul>
+        </div>
+    );
+}
 
 export default Sidebar;
