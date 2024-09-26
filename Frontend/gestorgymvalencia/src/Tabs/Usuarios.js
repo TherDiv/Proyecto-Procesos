@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableRow, TextField, Button, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
-import AddUserDialog from './AddUserDialog';
+import AddUserDialog from '../Components/AddUserDialog';
 
-const UsersTable = () => {
+const Usuarios = () => {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
 
@@ -110,4 +110,4 @@ const UsersTable = () => {
   );
 };
 
-export default UsersTable;
+export default Usuarios;
