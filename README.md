@@ -6,21 +6,20 @@ El sistema **GGV** está diseñado para el **personal administrativo** del gimna
 
 ```bash
 git clone https://github.com/TherDiv/Proyecto-Procesos.git
-<<<<<<< HEAD
 git checkout -b staging origin/staging
-=======
->>>>>>> e42303ffc7667c68d6a2a5bae96ef7f103795ee1
 cd Proyecto-Procesos
 
 npm install
 ```
 
 ### Inicializar en Windows
+
 ```bash
 npm run dev
 ```
 
 ### Inicializar en Linux
+
 ```bash
 yarn dev
 ```
@@ -28,6 +27,7 @@ yarn dev
 Abra [http://localhost:3000](http://localhost:3000) con su navegador para ver el resultado.
 
 ## Integrantes:
+
 1. Sebastian Joaquin Chicata Serrato
 2. Esther Noemi Ticlla Vento
 3. Joseph Leonel Castillejo Huancas

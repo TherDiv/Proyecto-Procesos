@@ -11,9 +11,8 @@ import Trabajadores from './Tabs/Trabajadores';
 import Mantenimiento from './Tabs/Mantenimiento';
 import Upperbar from './Components/Upperbar';
 
+
 import './App.css'; 
-
-
 
 function App() {
   return (
