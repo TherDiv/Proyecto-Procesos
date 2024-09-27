@@ -65,7 +65,7 @@
   background-color: #293846;
 }
 
-.SidebarList #activate {
+.SidebarList .row.active {
   background-color: #293846;
 }
 
