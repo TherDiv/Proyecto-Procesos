@@ -5,12 +5,24 @@
   top: 0; /* Ocupa toda la pantalla verticalmente */
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px); /* Hace que empiece fuera del viewport en la parte superior */
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0); /* Regresa a su posición original */
+  }
+}
+
 .sidebar {
   top: 0; 
   width: 250px; /* Ancho fijo para la barra lateral */
   background-color: #314051;
   padding: 20px 10%;
   height: 100%; /* Asegura que ocupe toda la altura */
+  
   
 }
 
@@ -35,7 +47,18 @@
   justify-content: center;
   align-items: center;
   font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  opacity: 0; /* Comienza invisible */
+  animation: fadeIn 0.2s ease-in-out forwards; /* Aplica la animación */
 }
+
+.SidebarList .row:nth-child(1) {animation-delay: 0s;}
+.SidebarList .row:nth-child(2) {animation-delay: 0.1s;}
+.SidebarList .row:nth-child(3) {animation-delay: 0.15s;}
+.SidebarList .row:nth-child(4) {animation-delay: 0.2s;}
+.SidebarList .row:nth-child(5) {animation-delay: 0.25s;}
+.SidebarList .row:nth-child(6) {animation-delay: 0.3s;}
+.SidebarList .row:nth-child(7) {animation-delay: 0.35s;}
+.SidebarList .row:nth-child(8) {animation-delay: 0.4s;}
 
 .SidebarList .row:hover {
   cursor:pointer;
