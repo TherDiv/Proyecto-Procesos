@@ -42,10 +42,10 @@ const Usuarios = () => {
     setUsers([...users, newUser]);
   };
 
-  // Filtrar usuarios
+  // Filtrar usuarios por tipo de membresía
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(search.toLowerCase()) &&
-    (filter === '' || user.estado === filter)
+    (filter === '' || user.tipo === filter) // Filtra por tipo de membresía
   );
 
   return (
@@ -64,15 +64,16 @@ const Usuarios = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
         <FormControl style={{ marginLeft: '1rem' }}>
-          <InputLabel>Filtrar por</InputLabel>
+          <InputLabel>Filtrar por Membresía</InputLabel>
           <Select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             style={{ width: 150 }}
           >
             <MenuItem value="">Todos</MenuItem>
-            <MenuItem value="ACTIVO">Activo</MenuItem>
-            <MenuItem value="INACTIVO">Inactivo</MenuItem>
+            <MenuItem value="Trimestral">Trimestral</MenuItem>
+            <MenuItem value="Semestral">Semestral</MenuItem>
+            <MenuItem value="Anual">Anual</MenuItem>
           </Select>
         </FormControl>
       </div>
