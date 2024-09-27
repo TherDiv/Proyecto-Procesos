@@ -6,7 +6,7 @@ El sistema **GGV** está diseñado para el **personal administrativo** del gimna
 
 ```bash
 git clone https://github.com/TherDiv/Proyecto-Procesos.git
-git checkout -b develop origin/develop
+git checkout -b staging origin/staging
 cd Proyecto-Procesos
 
 npm install
