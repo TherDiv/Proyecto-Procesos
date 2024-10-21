@@ -6,10 +6,6 @@ const Upperbar =() =>{
     return (
         <header className = "header">
             <nav className='upperbar'>
-
-
-
-
             </nav>
         </header>
     );
