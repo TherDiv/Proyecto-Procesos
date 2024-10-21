@@ -1,0 +1,28 @@
+.weekly-schedule-table {
+    width: 100%;
+    table-layout: fixed; /* Distribuye el espacio de manera uniforme */
+    border-collapse: collapse;
+  }
+  
+  .weekly-schedule-row {
+    height: 50px; /* Ajusta la altura según tus necesidades */
+  }
+  
+  .weekly-schedule-cell, .time-cell {
+    border: 1px solid #ddd;
+    padding: 10px;
+    vertical-align: top; /* Alinea el contenido en la parte superior */
+    height: 50px; /* Todas las celdas tendrán la misma altura */
+    overflow-y: auto; /* Agrega scroll si el contenido es demasiado grande */
+  }
+  
+  .weekly-schedule-table th,
+  .weekly-schedule-table td {
+    text-align: center;
+  }
+  
+  .time-cell {
+    font-weight: bold;
+    background-color: #f5f5f5;
+  }
+  
