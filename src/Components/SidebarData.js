@@ -24,11 +24,6 @@ export const SidebarData = [
         link: "/usuarios"
     },
     {
-        title: "Financiero",
-        icon: <AttachMoneyIcon />,
-        link: "/financiero"
-    },
-    {
         title: "Horarios",
         icon: <CalendarMonthIcon />,
         link: "/horarios"
@@ -37,10 +32,5 @@ export const SidebarData = [
         title: "Trabajadores",
         icon: <BusinessCenterIcon />,
         link: "/trabajadores"
-    },
-    {
-        title: "Mantenimiento",
-        icon: <EngineeringIcon />,
-        link: "/mantenimiento"
     }
-]
+];
