@@ -1,98 +1,85 @@
-import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, TextField, Button, Checkbox, Box, Typography } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers';
-import 'dayjs/locale/es';
+import React, { useEffect, useState } from 'react';
+import { obtenerAsistencias, marcarAsistencia } from '../api/api';
+import dayjs from 'dayjs';
 
 const Asistencias = () => {
-  const [filter, setFilter] = useState('');
-  const [search, setSearch] = useState('');
+  const [asistencias, setAsistencias] = useState([]);
+  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Inicializamos con la fecha actual en formato YYYY-MM-DD
 
-  const [users, setUsers] = useState([
-    { dni: '1234567', name: 'GARCÍA LÓPEZ, JUAN CARLOS', horaEntrada: '08:00', horaSalida: '17:00', tipo: 'Trimestral', horario: 'Diario', asistencia: false },
-    { dni: '2345678', name: 'PÉREZ SÁNCHEZ, MARÍA FERNANDA', horaEntrada: '09:00', horaSalida: '18:00', tipo: 'Trimestral', horario: 'Interdiario', asistencia: false },
-    { dni: '3456789', name: 'MARTÍNEZ RUIZ, LUIS MIGUEL', horaEntrada: '07:30', horaSalida: '16:30', tipo: 'Semestral', horario: 'Diario', asistencia: false },
-    { dni: '4567890', name: 'RODRÍGUEZ DÍAZ, ANA SOFÍA', horaEntrada: '08:30', horaSalida: '17:30', tipo: 'Anual', horario: 'Interdiario', asistencia: false },
-    { dni: '5678901', name: 'HERNÁNDEZ GÓMEZ, DAVID ALEJANDRO', horaEntrada: '08:00', horaSalida: '17:00', tipo: 'Semestral', horario: 'Diario', asistencia: false },
-    { dni: '6789012', name: 'FERNÁNDEZ LÓPEZ, ISABEL CRISTINA', horaEntrada: '09:00', horaSalida: '18:00', tipo: 'Anual', horario: 'Diario', asistencia: false },
-    { dni: '7890123', name: 'RAMÍREZ PÉREZ, CARLOS ANDRÉS', horaEntrada: '08:30', horaSalida: '17:30', tipo: 'Semestral', horario: 'Interdiario', asistencia: false },
-    { dni: '8901234', name: 'SÁNCHEZ GARCÍA, LAURA PAOLA', horaEntrada: '07:45', horaSalida: '16:45', tipo: 'Trimestral', horario: 'Diario', asistencia: false },
-    { dni: '9012345', name: 'GÓMEZ JIMÉNEZ, JORGE DANIEL', horaEntrada: '08:15', horaSalida: '17:15', tipo: 'Anual', horario: 'Diario', asistencia: false },
-    { dni: '0123456', name: 'DÍAZ HERNÁNDEZ, SOFÍA ISABEL', horaEntrada: '09:30', horaSalida: '18:30', tipo: 'Semestral', horario: 'Interdiario', asistencia: false },
-    { dni: '1234561', name: 'LOPEZ MARTÍNEZ, ALEJANDRO ENRIQUE', horaEntrada: '07:00', horaSalida: '16:00', tipo: 'Anual', horario: 'Diario', asistencia: false },
-    { dni: '2345672', name: 'VARGAS SERRANO, MARÍA CAMILA', horaEntrada: '08:45', horaSalida: '17:45', tipo: 'Semestral', horario: 'Interdiario', asistencia: false },
-    { dni: '3456783', name: 'RUIZ RAMÍREZ, JAVIER ANTONIO', horaEntrada: '08:00', horaSalida: '17:00', tipo: 'Anual', horario: 'Diario', asistencia: false },
-    { dni: '4567894', name: 'MORALES PÉREZ, DANIEL FERNANDO', horaEntrada: '09:00', horaSalida: '18:00', tipo: 'Semestral', horario: 'Diario', asistencia: false },
-    { dni: '5678905', name: 'TORRES FLORES, SARA ELENA', horaEntrada: '07:30', horaSalida: '16:30', tipo: 'Anual', horario: 'Interdiario', asistencia: false },
-    { dni: '6789016', name: 'GUTIÉRREZ GONZÁLEZ, MIGUEL ÁNGEL', horaEntrada: '08:15', horaSalida: '17:15', tipo: 'Semestral', horario: 'Diario', asistencia: false }
-  ]);
-  
+  // Cargar asistencias al montar el componente o cuando la fecha cambie
+  useEffect(() => {
+    const cargarAsistencias = async () => {
+      try {
+        const data = await obtenerAsistencias(fecha);
+        setAsistencias(data);
+      } catch (error) {
+        console.error("Error al cargar asistencias:", error);
+      }
+    };
+    cargarAsistencias();
+  }, [fecha]);
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Manejar cambio de fecha y formatearla en YYYY-MM-DD
+  const handleFechaChange = (event) => {
+    const selectedDate = dayjs(event.target.value).format('YYYY-MM-DD');
+    setFecha(selectedDate);
+  };
 
-  const handleCheckboxChange = (index) => {
-    const updatedUsers = [...users];
-    updatedUsers[index].asistencia = !updatedUsers[index].asistencia;
-    setUsers(updatedUsers);
+  // Función para marcar asistencia (entrada o salida)
+  const handleMarcarAsistencia = async (id_matricula) => {
+    const currentTime = dayjs().format('HH:mm');
+    try {
+      const response = await marcarAsistencia(id_matricula, fecha, currentTime);
+      alert(response.message);
+      // Recargar la lista de asistencias después de marcar
+      const data = await obtenerAsistencias(fecha);
+      setAsistencias(data);
+    } catch (error) {
+      console.error("Error al marcar asistencia:", error);
+    }
   };
 
   return (
     <div>
-      <h1>Modulo de asistencias</h1>
-      <Box style={{ marginBottom: "20px" }} >
-        <LocalizationProvider dateAdapter = {AdapterDayjs} adapterLocale="es">
-          <DatePicker 
-          label="Seleccionar Fecha"/>
-        </LocalizationProvider>
-
-      </Box>
-      <TextField 
-        label="Buscar usuario"
-        variant="outlined"
-        size="small"
-        style={{ width: '600px' }}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <Button 
-        variant="contained" 
-        color="primary" 
-        style={{ marginLeft: '2rem' }}>
-        Descargar Reporte
-      </Button>
-
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>DNI</TableCell> 
-            <TableCell>Nombres y Apellidos</TableCell>   
-            <TableCell>Asistencia</TableCell>       
-            <TableCell>Hora Entrada</TableCell> 
-            <TableCell>Hora Salida</TableCell>
-          </TableRow>
-        </TableHead>
-
-        <TableBody>
-          {filteredUsers.map((user, index) => (
-            <TableRow key={index}>
-              <TableCell>{user.dni}</TableCell>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>
-                <Checkbox
-                  checked={user.asistencia}
-                  onChange={() => handleCheckboxChange(index)}
-                />
-              </TableCell>
-              <TableCell>{user.horaEntrada}</TableCell>
-              <TableCell>{user.horaSalida}</TableCell>
-            </TableRow>
+      <h1>Módulo de Asistencias</h1>
+      <label>
+        Seleccionar Fecha:
+        <input
+          type="date"
+          value={fecha}
+          onChange={handleFechaChange}
+        />
+      </label>
+      <table>
+        <thead>
+          <tr>
+            <th>ID Usuario</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>Hora Entrada</th>
+            <th>Hora Salida</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {asistencias.map((asistencia) => (
+            <tr key={asistencia.id_usuario}>
+              <td>{asistencia.id_usuario}</td>
+              <td>{asistencia.nombre}</td>
+              <td>{asistencia.apellido}</td>
+              <td>{asistencia.email}</td>
+              <td>{asistencia.hora_entrada || "No registrada"}</td>
+              <td>{asistencia.hora_salida || "No registrada"}</td>
+              <td>
+                <button onClick={() => handleMarcarAsistencia(asistencia.id_matricula)}>
+                  Marcar Asistencia
+                </button>
+              </td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-      <p>Este es el contenido principal de la página de Asistencias.</p>
+        </tbody>
+      </table>
     </div>
   );
 };
