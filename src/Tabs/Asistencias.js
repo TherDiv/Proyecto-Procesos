@@ -1,55 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { obtenerAsistencias, marcarAsistencia } from '../api/api';
+import React, { useState, useEffect } from 'react';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import { obtenerAsistencias, marcarAsistencia } from '../api/api';
 
 const Asistencias = () => {
+  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD'));
   const [asistencias, setAsistencias] = useState([]);
-  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Inicializamos con la fecha actual en formato YYYY-MM-DD
 
-  // Cargar asistencias al montar el componente o cuando la fecha cambie
-  useEffect(() => {
-    const cargarAsistencias = async () => {
-      try {
-        const data = await obtenerAsistencias(fecha);
-        setAsistencias(data);
-      } catch (error) {
-        console.error("Error al cargar asistencias:", error);
-      }
-    };
-    cargarAsistencias();
-  }, [fecha]);
-
-  // Manejar cambio de fecha y formatearla en YYYY-MM-DD
-  const handleFechaChange = (event) => {
-    const selectedDate = dayjs(event.target.value).format('YYYY-MM-DD');
-    setFecha(selectedDate);
-  };
-
-  // Función para marcar asistencia (entrada o salida)
-  const handleMarcarAsistencia = async (id_matricula) => {
-    const currentTime = dayjs().format('HH:mm');
+  // Cargar asistencias desde el backend
+  const cargarAsistencias = async (date) => {
     try {
-      const response = await marcarAsistencia(id_matricula, fecha, currentTime);
-      alert(response.message);
-      // Recargar la lista de asistencias después de marcar
-      const data = await obtenerAsistencias(fecha);
+      const data = await obtenerAsistencias(date);
       setAsistencias(data);
     } catch (error) {
-      console.error("Error al marcar asistencia:", error);
+      console.error("Error al cargar asistencias:", error.message);
     }
   };
 
+  // Manejar el marcado de entrada
+  const handleMarcarEntrada = async (id_matricula) => {
+    try {
+      const time = dayjs().format('HH:mm');
+      await marcarAsistencia(id_matricula, fecha, time);
+      cargarAsistencias(fecha); // Recargar asistencias
+    } catch (error) {
+      console.error("Error al marcar la entrada:", error.message);
+    }
+  };
+
+  // Manejar el marcado de salida
+  const handleMarcarSalida = async (id_matricula) => {
+    try {
+      const time = dayjs().format('HH:mm');
+      await marcarAsistencia(id_matricula, fecha, time);
+      cargarAsistencias(fecha); // Recargar asistencias
+    } catch (error) {
+      console.error("Error al marcar la salida:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    cargarAsistencias(fecha);
+  }, [fecha]);
+
   return (
     <div>
-      <h1>Módulo de Asistencias</h1>
-      <label>
-        Seleccionar Fecha:
-        <input
-          type="date"
-          value={fecha}
-          onChange={handleFechaChange}
-        />
-      </label>
+      <h2>Módulo de Asistencias</h2>
+      <div>
+        <label>Seleccionar Fecha:</label>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            value={dayjs(fecha)}
+            onChange={(newValue) => {
+              if (newValue) {
+                setFecha(newValue.format('YYYY-MM-DD'));
+              }
+            }}
+          />
+        </LocalizationProvider>
+      </div>
       <table>
         <thead>
           <tr>
@@ -63,21 +73,36 @@ const Asistencias = () => {
           </tr>
         </thead>
         <tbody>
-          {asistencias.map((asistencia) => (
-            <tr key={asistencia.id_usuario}>
-              <td>{asistencia.id_usuario}</td>
-              <td>{asistencia.nombre}</td>
-              <td>{asistencia.apellido}</td>
-              <td>{asistencia.email}</td>
-              <td>{asistencia.hora_entrada || "No registrada"}</td>
-              <td>{asistencia.hora_salida || "No registrada"}</td>
-              <td>
-                <button onClick={() => handleMarcarAsistencia(asistencia.id_matricula)}>
-                  Marcar Asistencia
-                </button>
-              </td>
+          {asistencias.length > 0 ? (
+            asistencias.map((asistencia) => (
+              <tr key={asistencia.id_usuario}>
+                <td>{asistencia.id_usuario}</td>
+                <td>{asistencia.nombre}</td>
+                <td>{asistencia.apellido}</td>
+                <td>{asistencia.email}</td>
+                <td>{asistencia.hora_entrada || '-'}</td>
+                <td>{asistencia.hora_salida || '-'}</td>
+                <td>
+                  <button 
+                    onClick={() => handleMarcarEntrada(asistencia.id_matricula)} 
+                    disabled={!!asistencia.hora_entrada}
+                  >
+                    Entrada
+                  </button>
+                  <button 
+                    onClick={() => handleMarcarSalida(asistencia.id_matricula)} 
+                    disabled={!asistencia.hora_entrada || !!asistencia.hora_salida}
+                  >
+                    Salida
+                  </button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="7">No hay asistencias para la fecha seleccionada</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>

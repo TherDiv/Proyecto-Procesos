@@ -22,7 +22,7 @@ export const SidebarData = [
         link: "/usuarios"
     },
     {
-        title: "Horarios",
+        title: "Actividades",
         icon: <CalendarMonthIcon />,
         link: "/horarios"
     },

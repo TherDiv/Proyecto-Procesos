@@ -39,9 +39,6 @@ const Usuarios = () => {
     <div>
       <h1>Usuarios del gimnasio</h1>
       <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom="20px">
-        <Button variant="contained" color="primary" onClick={handleOpenDialog}>
-          Añadir Usuario
-        </Button>
         <Box display="flex" alignItems="center">
           <TextField
             label="Buscar usuario"
@@ -64,6 +61,9 @@ const Usuarios = () => {
             <MenuItem value="inactiva">Inactiva</MenuItem>
           </Select>
         </Box>
+        <Button variant="contained" color="primary" onClick={handleOpenDialog}>
+          Añadir Usuario
+        </Button>
       </Box>
       <Table>
         <TableHead>
