@@ -3,6 +3,28 @@ import dayjs from 'dayjs';
 
 const BASE_URL = 'https://procesos-backend.vercel.app/api';
 
+// Trabajadores
+export const obtenerTrabajadores = async () => {
+  try {
+      const response = await axios.get(`${BASE_URL}/trabajadores`);
+      return response.data;
+  } catch (error) {
+      console.error('Error al obtener trabajadores:', error.message);
+      throw error;
+  }
+};
+
+export const crearTrabajador = async (nuevoTrabajador) => {
+  try {
+      const response = await axios.post(`${BASE_URL}/trabajadores`, nuevoTrabajador);
+      return response.data;
+  } catch (error) {
+      console.error('Error al crear trabajador:', error.message);
+      throw error;
+  }
+};
+
+
 // **Asistencias**
 
 // Función para obtener asistencias en una fecha específica
@@ -97,30 +119,6 @@ export const eliminarActividad = async (id_actividad) => {
     return response.data;
   } catch (error) {
     console.error('Error al eliminar actividad:', error.message);
-    throw error;
-  }
-};
-
-// **Trabajadores**
-
-// Función para obtener todos los trabajadores
-export const obtenerTrabajadores = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/trabajadores`);
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener trabajadores:', error.message);
-    throw error;
-  }
-};
-
-// Función para crear un nuevo trabajador
-export const crearTrabajador = async (trabajador) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/trabajadores`, trabajador);
-    return response.data;
-  } catch (error) {
-    console.error('Error al crear trabajador:', error.message);
     throw error;
   }
 };
