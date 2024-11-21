@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';  // Aseguramos la importación de useCallback
 import {
   Table,
   TableBody,
@@ -25,8 +25,8 @@ const Horarios = () => {
   const [weeklySchedule, setWeeklySchedule] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Cargar actividades desde el backend
-  const cargarActividades = async () => {
+  // Cargar actividades desde el backend con useCallback para evitar que cambie en cada renderizado
+  const cargarActividades = useCallback(async () => {
     try {
       const response = await axios.get(`${BASE_URL}/actividades`);
       const data = response.data.actividades.map((actividad) => ({
@@ -36,16 +36,16 @@ const Horarios = () => {
         hora_fin: actividad.hora_fin,
         actividad: actividad.actividad,
         profesor: actividad.profesor,
-        day: dayjs(actividad.fecha).format('dddd'), // Día de la semana
+        day: dayjs(actividad.fecha).format('dddd'),
       }));
       setActivities(data);
       generarVistaSemanal(data);
     } catch (error) {
       console.error('Error al cargar actividades:', error);
     }
-  };
+  }, []);  // Se pasa [] para que la función no cambie entre renders
 
-  // Generar la vista semanal a partir de las actividades
+  // Generar la vista semanal
   const generarVistaSemanal = (actividades) => {
     const horariosSemanal = actividades.map((actividad) => ({
       day: dayjs(actividad.fecha).format('dddd'),
@@ -56,42 +56,36 @@ const Horarios = () => {
     setWeeklySchedule(horariosSemanal);
   };
 
+  // useEffect que depende de cargarActividades
   useEffect(() => {
-    cargarActividades();
-  }, []);
+    cargarActividades();  // Solo se ejecuta cuando el componente se monta
+  }, [cargarActividades]);  // Dependencia vacía asegura que se ejecute una sola vez
 
-  // Añadir nueva actividad
+  // Agregar una nueva actividad
   const handleAddActivity = async (newActivity) => {
     try {
       const response = await axios.post(`${BASE_URL}/actividades`, newActivity);
       console.log('Actividad añadida:', response.data);
-      cargarActividades(); // Refrescar actividades después de añadir
+      cargarActividades(); // Vuelve a cargar las actividades después de añadir una nueva
     } catch (error) {
       console.error('Error al añadir actividad:', error);
     }
   };
 
-  // Eliminar actividad
+  // Eliminar una actividad
   const handleDeleteActivity = async (id_actividad) => {
     try {
       await axios.delete(`${BASE_URL}/actividades`, {
         data: { id_actividad },
       });
-      cargarActividades(); // Refrescar actividades después de eliminar
+      cargarActividades();  // Recarga las actividades después de eliminar una
     } catch (error) {
       console.error('Error al eliminar actividad:', error);
     }
   };
 
-  // Manejo del cambio de fecha seleccionada
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
-
-  // Días de la semana
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-  // Definir los intervalos de tiempo
   const timeSlots = [
     '09:00 - 10:00',
     '10:00 - 11:00',
@@ -103,10 +97,7 @@ const Horarios = () => {
 
   return (
     <div>
-      <Typography variant="h4" gutterBottom>
-        Horarios de Actividades
-      </Typography>
-
+      <h1>Horarios de Actividades</h1>
       {/* Botón para añadir actividad */}
       <Box display="flex" justifyContent="flex-end" marginBottom={2}>
         <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
@@ -157,7 +148,6 @@ const Horarios = () => {
             onChange={(newValue) => setSelectedDate(newValue || dayjs())} // Asegura un valor por defecto
           />
         </LocalizationProvider>
-
       </Box>
 
       <Box>

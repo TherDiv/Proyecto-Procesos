@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box } from '@mui/material';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import axios from 'axios';
 
 const AddActivityDialog = ({ open, onClose, onCrear }) => {
   const [newActivity, setNewActivity] = useState({
     nombre_actividad: '',
     descripcion: '',
-    fecha: dayjs(), // Inicializar con un objeto válido de Dayjs
-    horaInicio: dayjs(), // Hora inicial predeterminada
-    horaFin: dayjs().add(1, 'hour'), // Hora final predeterminada
+    fecha: dayjs(), 
+    horaInicio: dayjs(), 
+    horaFin: dayjs().add(1, 'hour'), 
     profesor: '',
   });
 
@@ -18,7 +19,7 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
     setNewActivity((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCrearActividad = () => {
+  const handleCrearActividad = async () => {
     if (
       newActivity.nombre_actividad &&
       newActivity.fecha &&
@@ -26,17 +27,38 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
       newActivity.horaFin &&
       newActivity.profesor
     ) {
+      // Crear la estructura de datos esperada por el backend
       const payload = {
+        id_gimnasio: 1, // ID del gimnasio (puedes modificarlo si es necesario)
         nombre_actividad: newActivity.nombre_actividad,
         descripcion: newActivity.descripcion,
-        fecha: newActivity.fecha.format('YYYY-MM-DD'), // Formato esperado por el backend
-        hora_inicio: newActivity.horaInicio.format('HH:mm'),
-        hora_fin: newActivity.horaFin.format('HH:mm'),
-        profesor: newActivity.profesor,
+        horarios: [
+          {
+            fecha: newActivity.fecha.toISOString(), // Convertir la fecha a formato ISO
+            hora_inicio: newActivity.horaInicio.toISOString(), // Convertir la hora de inicio a formato ISO
+            hora_fin: newActivity.horaFin.toISOString(), // Convertir la hora de fin a formato ISO
+            id_trabajador: 5 // ID del trabajador (profesor) que puede ser dinámico
+          }
+        ]
       };
 
-      onCrear(payload);
-      onClose();
+      // Verificar el contenido del payload (opcional, para depuración)
+      console.log(payload);
+
+      try {
+        // Enviar el payload al backend
+        const response = await axios.post('https://procesos-backend.vercel.app/api/actividades', payload);
+        console.log('Actividad creada:', response.data);
+        
+        // Llamar a onCrear para actualizar el estado en el componente padre
+        onCrear(response.data);
+
+        // Cerrar el diálogo
+        onClose();
+      } catch (error) {
+        console.error('Error al crear actividad:', error);
+        alert('Hubo un error al crear la actividad');
+      }
     } else {
       alert('Por favor, completa todos los campos');
     }

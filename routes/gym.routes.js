@@ -1,19 +1,24 @@
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import dayjs from 'dayjs';
 
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors()); // Habilita CORS si es necesario
-app.use(express.json()); // Permite parsear JSON en el body de las solicitudes
+app.use(cors());
+app.use(express.json());
 
 // Endpoint para obtener asistencias
 app.get('/api/obtener_asistencias', async (req, res) => {
     const { date } = req.query;
-    const fecha = new Date(`${date}T00:00:00Z`); // Asegura que la fecha esté en UTC al inicio del día
+
+    if (!date) {
+        return res.status(400).json({ message: 'El parámetro date es obligatorio' });
+    }
 
     try {
+        const fecha = dayjs(date).startOf('day').toDate();
         const usuarios = await prisma.usuario.findMany({
             select: {
                 id_usuario: true,
@@ -32,7 +37,7 @@ app.get('/api/obtener_asistencias', async (req, res) => {
             },
         });
 
-        const usuariosConAsistencia = usuarios.map(usuario => {
+        const usuariosConAsistencia = usuarios.map((usuario) => {
             const asistencia = usuario.matriculas[0]?.asistencias[0];
             return {
                 id_usuario: usuario.id_usuario,
@@ -40,32 +45,39 @@ app.get('/api/obtener_asistencias', async (req, res) => {
                 apellido: usuario.apellido,
                 email: usuario.email,
                 id_matricula: usuario.matriculas[0]?.id_matricula || null,
-                hora_entrada: asistencia?.hora_entrada ? asistencia.hora_entrada.toISOString().split('T')[1].split('.')[0] : null,
-                hora_salida: asistencia?.hora_salida ? asistencia.hora_salida.toISOString().split('T')[1].split('.')[0] : null,
+                hora_entrada: asistencia?.hora_entrada
+                    ? dayjs(asistencia.hora_entrada).format('HH:mm:ss')
+                    : null,
+                hora_salida: asistencia?.hora_salida
+                    ? dayjs(asistencia.hora_salida).format('HH:mm:ss')
+                    : null,
             };
         });
 
         res.json(usuariosConAsistencia);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
 
 // Endpoint para marcar asistencia (entrada o salida)
 app.post('/api/marcar_asistencia', async (req, res) => {
     const { id_matricula, date, time } = req.body;
-    const matriculaId = parseInt(id_matricula, 10);
-    const fecha = new Date(`${date}T00:00:00Z`);
 
-    if (isNaN(matriculaId)) {
-        return res.status(400).json({ message: 'El id_matricula debe ser un número válido' });
+    if (!id_matricula || !date || !time) {
+        return res.status(400).json({ message: 'Todos los parámetros (id_matricula, date, time) son obligatorios' });
     }
 
     try {
-        const [entradaHours, entradaMinutes] = time.split(':').map(Number);
-        const horaEntrada = new Date(fecha);
-        horaEntrada.setUTCHours(entradaHours, entradaMinutes);
+        const matriculaId = parseInt(id_matricula, 10);
+        const fecha = dayjs(date).startOf('day').toDate();
+        const [hours, minutes] = time.split(':').map(Number);
+        const horaEvento = dayjs(fecha).hour(hours).minute(minutes).second(0).toDate();
+
+        if (isNaN(matriculaId)) {
+            return res.status(400).json({ message: 'El id_matricula debe ser un número válido' });
+        }
 
         const asistenciaExistente = await prisma.asistencias.findFirst({
             where: { matriculas: { id_matricula: matriculaId }, fecha },
@@ -75,25 +87,24 @@ app.post('/api/marcar_asistencia', async (req, res) => {
             const nuevaAsistencia = await prisma.asistencias.create({
                 data: {
                     fecha,
-                    hora_entrada: horaEntrada,
+                    hora_entrada: horaEvento, // Verifica si esta hora es correcta
                     estado_asistencia: 'presente',
                     matriculas: { connect: { id_matricula: matriculaId } },
                 },
             });
-            res.json({ message: 'Asistencia registrada con hora de entrada', asistencia: nuevaAsistencia });
-        } else if (!asistenciaExistente.hora_salida) {
-            const [salidaHours, salidaMinutes] = time.split(':').map(Number);
-            const horaSalida = new Date(fecha);
-            horaSalida.setUTCHours(salidaHours, salidaMinutes);
+            return res.json({ message: 'Asistencia registrada con hora de entrada', asistencia: nuevaAsistencia });
+        }
+        
 
+        if (!asistenciaExistente.hora_salida) {
             const asistenciaActualizada = await prisma.asistencias.update({
                 where: { id_asistencia: asistenciaExistente.id_asistencia },
-                data: { hora_salida: horaSalida },
+                data: { hora_salida: horaEvento },
             });
-            res.json({ message: 'Asistencia registrada con hora de salida', asistencia: asistenciaActualizada });
-        } else {
-            res.status(400).json({ message: 'La asistencia para esta fecha ya está completa' });
+            return res.json({ message: 'Asistencia registrada con hora de salida', asistencia: asistenciaActualizada });
         }
+
+        res.status(400).json({ message: 'La asistencia para esta fecha ya está completa' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error interno del servidor' });
@@ -114,7 +125,7 @@ app.get('/api/obtener_usuario', async (req, res) => {
             4: 'anual',
         };
 
-        const resultado = usuarios.map(usuario => {
+        const resultado = usuarios.map((usuario) => {
             const estado_membresia = usuario.matriculas.length > 0 ? usuario.matriculas[0].estado_matricula : null;
             const membresia = usuario.matriculas.length > 0 ? usuario.matriculas[0].membresias : null;
 
@@ -123,8 +134,8 @@ app.get('/api/obtener_usuario', async (req, res) => {
                 nombres: usuario.nombre,
                 apellidos: usuario.apellido,
                 estado_membresia,
-                inicio_membresia: membresia ? membresia.fecha_inicio.toISOString().split('T')[0] : null,
-                fin_membresia: membresia ? membresia.fecha_vencimiento.toISOString().split('T')[0] : null,
+                inicio_membresia: membresia ? dayjs(membresia.fecha_inicio).format('YYYY-MM-DD') : null,
+                fin_membresia: membresia ? dayjs(membresia.fecha_vencimiento).format('YYYY-MM-DD') : null,
                 tipo_membresia: membresia ? tipoMembresiaMap[membresia.id_tipo_membresia] : null,
             };
         });
@@ -158,7 +169,7 @@ app.post('/api/crear_usuario', async (req, res) => {
 
     try {
         const nuevoUsuario = await prisma.usuario.create({
-            data: { dni, apellido, nombre, email, telefono, direccion, fecha_registro: new Date(fecha_registro) },
+            data: { dni, apellido, nombre, email, telefono, direccion, fecha_registro: dayjs(fecha_registro).toDate() },
         });
 
         const nuevaMembresia = await prisma.membresias.create({
@@ -166,8 +177,8 @@ app.post('/api/crear_usuario', async (req, res) => {
                 id_usuario: nuevoUsuario.id_usuario,
                 id_tipo_membresia,
                 id_gimnasio: 1,
-                fecha_inicio: new Date(inicio_membresia),
-                fecha_vencimiento: new Date(fin_membresia),
+                fecha_inicio: dayjs(inicio_membresia).toDate(),
+                fecha_vencimiento: dayjs(fin_membresia).toDate(),
             },
         });
 
@@ -176,7 +187,7 @@ app.post('/api/crear_usuario', async (req, res) => {
                 id_usuario: nuevoUsuario.id_usuario,
                 id_membresia: nuevaMembresia.id_membresia,
                 id_gimnasio: 1,
-                fecha_matricula: new Date(inicio_membresia),
+                fecha_matricula: dayjs(inicio_membresia).toDate(),
                 estado_matricula: 'activa',
             },
         });

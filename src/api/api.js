@@ -3,53 +3,61 @@ import dayjs from 'dayjs';
 
 const BASE_URL = 'https://procesos-backend.vercel.app/api';
 
-// Trabajadores
 export const obtenerTrabajadores = async () => {
   try {
-      const response = await axios.get(`${BASE_URL}/trabajadores`);
-      return response.data;
+    const response = await axios.get(`${BASE_URL}/trabajadores`);
+    return response.data;
   } catch (error) {
-      console.error('Error al obtener trabajadores:', error.message);
-      throw error;
+    console.error('Error al obtener trabajadores:', error.message);
+    throw error;
   }
 };
 
 export const crearTrabajador = async (nuevoTrabajador) => {
   try {
-      const response = await axios.post(`${BASE_URL}/trabajadores`, nuevoTrabajador);
-      return response.data;
+    const response = await axios.post(`${BASE_URL}/trabajadores`, nuevoTrabajador);
+    return response.data;
   } catch (error) {
-      console.error('Error al crear trabajador:', error.message);
-      throw error;
+    console.error('Error al crear trabajador:', error.message);
+    throw error;
   }
 };
-
-
-// **Asistencias**
 
 export const obtenerAsistencias = async (date) => {
   try {
-    const response = await axios.get(`${BASE_URL}/obtener_asistencias`, { params: { date } });
+    const response = await axios.get(`${BASE_URL}/obtener_asistencias`, {
+      params: { date },
+    });
+    console.log('Respuesta al obtener asistencias:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error al obtener asistencias:', error);
+    console.error('Error al obtener asistencias:', error.response?.data || error.message);
+    if (error.response?.data) {
+      console.error('Detalles del error del servidor:', error.response.data);
+    }
     throw error;
   }
 };
 
-// Marcar asistencia (entrada/salida)
 export const marcarAsistencia = async (id_matricula, date, time) => {
   try {
-    const response = await axios.post(`${BASE_URL}/marcar_asistencia`, { id_matricula, date, time });
+    console.log('Enviando datos a marcar_asistencia:', { id_matricula, date, time });
+    const response = await axios.post(`${BASE_URL}/marcar_asistencia`, {
+      id_matricula,
+      date,
+      time,
+    });
+    console.log('Respuesta del backend (marcarAsistencia):', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error al marcar asistencia:', error);
+    console.error('Error al marcar asistencia:', error.response?.data || error.message);
+    if (error.response?.data) {
+      console.error('Detalles del error del servidor:', error.response.data);
+    }
     throw error;
   }
 };
-// **Usuarios**
 
-// Función para obtener todos los usuarios registrados en el sistema
 export const obtenerUsuarios = async () => {
   try {
     const response = await axios.get(`${BASE_URL}/obtener_usuario`);
@@ -60,27 +68,21 @@ export const obtenerUsuarios = async () => {
   }
 };
 
-// Función para crear un nuevo usuario
 export const crearUsuario = async (nuevoUsuario) => {
   try {
-    // Asegurarse de que las fechas estén en formato "YYYY-MM-DD"
     const formattedUser = {
       ...nuevoUsuario,
       inicio_membresia: dayjs(nuevoUsuario.inicio_membresia).format('YYYY-MM-DD'),
       fin_membresia: dayjs(nuevoUsuario.fin_membresia).format('YYYY-MM-DD'),
     };
-    
     const response = await axios.post(`${BASE_URL}/crear_usuario`, formattedUser);
     return response.data;
   } catch (error) {
-    console.error("Error al crear usuario:", error.response?.data || error.message);
+    console.error('Error al crear usuario:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Error al crear usuario');
   }
 };
 
-// **Actividades**
-
-// Función para obtener todas las actividades
 export const obtenerActividades = async () => {
   try {
     const response = await axios.get(`${BASE_URL}/actividades`);
@@ -91,7 +93,6 @@ export const obtenerActividades = async () => {
   }
 };
 
-// Función para crear una nueva actividad
 export const crearActividad = async (actividad) => {
   try {
     const response = await axios.post(`${BASE_URL}/actividades`, actividad);
@@ -102,7 +103,6 @@ export const crearActividad = async (actividad) => {
   }
 };
 
-// Función para eliminar una actividad
 export const eliminarActividad = async (id_actividad) => {
   try {
     const response = await axios.delete(`${BASE_URL}/actividades`, {

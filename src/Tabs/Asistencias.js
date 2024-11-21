@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box, Typography } from '@mui/material';
+import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { obtenerUsuarios, obtenerAsistencias, marcarAsistencia } from '../api/api';
 
 const Asistencias = () => {
-  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Fecha seleccionada
-  const [usuarios, setUsuarios] = useState([]); // Lista de usuarios activos
-  const [asistencias, setAsistencias] = useState([]); // Lista de asistencias para la fecha seleccionada
+  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Fecha segun endpoint
+  const [usuarios, setUsuarios] = useState([]); // Usuarios activos
+  const [asistencias, setAsistencias] = useState([]); // Lista de asistencias
 
-  // Cargar usuarios activos (usuarios con membresía activa)
   const cargarUsuarios = async () => {
     try {
       const data = await obtenerUsuarios();
@@ -21,31 +20,38 @@ const Asistencias = () => {
     }
   };
 
-  // Cargar asistencias desde el backend para la fecha seleccionada
   const cargarAsistencias = async (date) => {
     try {
-      const data = await obtenerAsistencias(date);
-      setAsistencias(data.asistencias || []);
+      const formattedDate = dayjs(date).format('DD-MM-YYYY'); // Formatear fecha a DD-MM-YYYY
+      console.log('Fecha enviada al endpoint obtener_asistencias:', formattedDate); // Depuración
+      const data = await obtenerAsistencias(formattedDate);
+      setAsistencias(data || []);
     } catch (error) {
       console.error('Error al cargar asistencias:', error.message);
     }
   };
 
-  // Marcar entrada o salida
   const handleMarcarAsistencia = async (id_matricula) => {
     try {
       const time = dayjs().format('HH:mm'); // Hora actual
-      await marcarAsistencia(id_matricula, fecha, time); // Llama al endpoint de marcar asistencia
-      cargarAsistencias(fecha); // Actualiza la tabla de asistencias
+      const formattedDate = dayjs(fecha).format('YYYY-MM-DD'); // Fecha formateada a YYYY-MM-DD
+      console.log('Datos enviados al endpoint marcar_asistencia:', {
+        id_matricula,
+        date: formattedDate,
+        time,
+      });
+      const response = await marcarAsistencia(id_matricula, formattedDate, time);
+      console.log('Respuesta del servidor:', response);
+      cargarAsistencias(fecha); // Recargar asistencias
     } catch (error) {
-      console.error('Error al marcar asistencia:', error.message);
+      console.error('Error al marcar asistencia:', error.response?.data || error.message);
     }
   };
+  
 
-  // Combina usuarios con asistencias para mostrar la tabla completa
   const obtenerTablaAsistencias = () => {
     return usuarios.map((usuario) => {
-      const asistencia = asistencias.find((a) => a.id_matricula === usuario.dni) || {}; // Busca si hay asistencia registrada
+      const asistencia = asistencias.find((a) => a.id_matricula === usuario.dni) || {}; 
       return {
         id_usuario: usuario.dni,
         nombre: usuario.nombres,
@@ -53,22 +59,19 @@ const Asistencias = () => {
         email: usuario.email || '-',
         hora_entrada: asistencia.hora_entrada || '-',
         hora_salida: asistencia.hora_salida || '-',
-        id_matricula: usuario.dni, // Usa el ID de matrícula como identificador
+        id_matricula: usuario.dni, 
       };
     });
   };
 
-  // Cargar datos iniciales al montar el componente
   useEffect(() => {
-    cargarUsuarios(); // Cargar usuarios activos
-    cargarAsistencias(fecha); // Cargar asistencias para la fecha actual
+    cargarUsuarios();
+    cargarAsistencias(fecha); 
   }, [fecha]);
 
   return (
     <div>
-      <Typography variant="h4" gutterBottom>
-        Asistencias del Gimnasio
-      </Typography>
+      <h1>Asistencias del Gimnasio</h1>
       <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom="20px">
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
@@ -108,7 +111,7 @@ const Asistencias = () => {
                   variant="contained"
                   color="primary"
                   onClick={() => handleMarcarAsistencia(usuario.id_matricula)}
-                  disabled={usuario.hora_entrada !== '-'} // Habilitado solo si no hay hora de entrada
+                  disabled={usuario.hora_entrada !== '-'} 
                   style={{ marginRight: '10px' }}
                 >
                   Entrada
@@ -117,7 +120,7 @@ const Asistencias = () => {
                   variant="contained"
                   color="secondary"
                   onClick={() => handleMarcarAsistencia(usuario.id_matricula)}
-                  disabled={usuario.hora_entrada === '-' || usuario.hora_salida !== '-'} // Habilitado solo si hay hora de entrada y no hay salida
+                  disabled={usuario.hora_entrada === '-' || usuario.hora_salida !== '-'} 
                 >
                   Salida
                 </Button>
