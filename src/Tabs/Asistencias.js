@@ -1,56 +1,78 @@
 import React, { useState, useEffect } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box, Typography } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { obtenerAsistencias, marcarAsistencia } from '../api/api';
+import { obtenerUsuarios, obtenerAsistencias, marcarAsistencia } from '../api/api';
 
 const Asistencias = () => {
-  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD'));
-  const [asistencias, setAsistencias] = useState([]);
+  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Fecha seleccionada
+  const [usuarios, setUsuarios] = useState([]); // Lista de usuarios activos
+  const [asistencias, setAsistencias] = useState([]); // Lista de asistencias para la fecha seleccionada
 
-  // Cargar asistencias desde el backend
+  // Cargar usuarios activos (usuarios con membresía activa)
+  const cargarUsuarios = async () => {
+    try {
+      const data = await obtenerUsuarios();
+      const usuariosActivos = data.filter((usuario) => usuario.estado_membresia === 'activa');
+      setUsuarios(usuariosActivos);
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error.message);
+    }
+  };
+
+  // Cargar asistencias desde el backend para la fecha seleccionada
   const cargarAsistencias = async (date) => {
     try {
       const data = await obtenerAsistencias(date);
-      setAsistencias(data);
+      setAsistencias(data.asistencias || []);
     } catch (error) {
-      console.error("Error al cargar asistencias:", error.message);
+      console.error('Error al cargar asistencias:', error.message);
     }
   };
 
-  // Manejar el marcado de entrada
-  const handleMarcarEntrada = async (id_matricula) => {
+  // Marcar entrada o salida
+  const handleMarcarAsistencia = async (id_matricula) => {
     try {
-      const time = dayjs().format('HH:mm');
-      await marcarAsistencia(id_matricula, fecha, time);
-      cargarAsistencias(fecha); // Recargar asistencias
+      const time = dayjs().format('HH:mm'); // Hora actual
+      await marcarAsistencia(id_matricula, fecha, time); // Llama al endpoint de marcar asistencia
+      cargarAsistencias(fecha); // Actualiza la tabla de asistencias
     } catch (error) {
-      console.error("Error al marcar la entrada:", error.message);
+      console.error('Error al marcar asistencia:', error.message);
     }
   };
 
-  // Manejar el marcado de salida
-  const handleMarcarSalida = async (id_matricula) => {
-    try {
-      const time = dayjs().format('HH:mm');
-      await marcarAsistencia(id_matricula, fecha, time);
-      cargarAsistencias(fecha); // Recargar asistencias
-    } catch (error) {
-      console.error("Error al marcar la salida:", error.message);
-    }
+  // Combina usuarios con asistencias para mostrar la tabla completa
+  const obtenerTablaAsistencias = () => {
+    return usuarios.map((usuario) => {
+      const asistencia = asistencias.find((a) => a.id_matricula === usuario.dni) || {}; // Busca si hay asistencia registrada
+      return {
+        id_usuario: usuario.dni,
+        nombre: usuario.nombres,
+        apellido: usuario.apellidos,
+        email: usuario.email || '-',
+        hora_entrada: asistencia.hora_entrada || '-',
+        hora_salida: asistencia.hora_salida || '-',
+        id_matricula: usuario.dni, // Usa el ID de matrícula como identificador
+      };
+    });
   };
 
+  // Cargar datos iniciales al montar el componente
   useEffect(() => {
-    cargarAsistencias(fecha);
+    cargarUsuarios(); // Cargar usuarios activos
+    cargarAsistencias(fecha); // Cargar asistencias para la fecha actual
   }, [fecha]);
 
   return (
     <div>
-      <h2>Módulo de Asistencias</h2>
-      <div>
-        <label>Seleccionar Fecha:</label>
+      <Typography variant="h4" gutterBottom>
+        Asistencias del Gimnasio
+      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom="20px">
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
+            label="Seleccionar Fecha"
             value={dayjs(fecha)}
             onChange={(newValue) => {
               if (newValue) {
@@ -59,52 +81,51 @@ const Asistencias = () => {
             }}
           />
         </LocalizationProvider>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID Usuario</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Email</th>
-            <th>Hora Entrada</th>
-            <th>Hora Salida</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {asistencias.length > 0 ? (
-            asistencias.map((asistencia) => (
-              <tr key={asistencia.id_usuario}>
-                <td>{asistencia.id_usuario}</td>
-                <td>{asistencia.nombre}</td>
-                <td>{asistencia.apellido}</td>
-                <td>{asistencia.email}</td>
-                <td>{asistencia.hora_entrada || '-'}</td>
-                <td>{asistencia.hora_salida || '-'}</td>
-                <td>
-                  <button 
-                    onClick={() => handleMarcarEntrada(asistencia.id_matricula)} 
-                    disabled={!!asistencia.hora_entrada}
-                  >
-                    Entrada
-                  </button>
-                  <button 
-                    onClick={() => handleMarcarSalida(asistencia.id_matricula)} 
-                    disabled={!asistencia.hora_entrada || !!asistencia.hora_salida}
-                  >
-                    Salida
-                  </button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="7">No hay asistencias para la fecha seleccionada</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      </Box>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>ID Usuario</TableCell>
+            <TableCell>Nombre</TableCell>
+            <TableCell>Apellido</TableCell>
+            <TableCell>Email</TableCell>
+            <TableCell>Hora Entrada</TableCell>
+            <TableCell>Hora Salida</TableCell>
+            <TableCell>Acciones</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {obtenerTablaAsistencias().map((usuario, index) => (
+            <TableRow key={index}>
+              <TableCell>{usuario.id_usuario}</TableCell>
+              <TableCell>{usuario.nombre}</TableCell>
+              <TableCell>{usuario.apellido}</TableCell>
+              <TableCell>{usuario.email}</TableCell>
+              <TableCell>{usuario.hora_entrada}</TableCell>
+              <TableCell>{usuario.hora_salida}</TableCell>
+              <TableCell>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleMarcarAsistencia(usuario.id_matricula)}
+                  disabled={usuario.hora_entrada !== '-'} // Habilitado solo si no hay hora de entrada
+                  style={{ marginRight: '10px' }}
+                >
+                  Entrada
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => handleMarcarAsistencia(usuario.id_matricula)}
+                  disabled={usuario.hora_entrada === '-' || usuario.hora_salida !== '-'} // Habilitado solo si hay hora de entrada y no hay salida
+                >
+                  Salida
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 };

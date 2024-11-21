@@ -27,34 +27,26 @@ export const crearTrabajador = async (nuevoTrabajador) => {
 
 // **Asistencias**
 
-// Función para obtener asistencias en una fecha específica
 export const obtenerAsistencias = async (date) => {
   try {
-    const response = await axios.get(`${BASE_URL}/obtener_asistencias`, {
-      params: { date }, // Enviamos la fecha como parámetro
-    });
+    const response = await axios.get(`${BASE_URL}/obtener_asistencias`, { params: { date } });
     return response.data;
   } catch (error) {
-    console.error('Error al obtener asistencias:', error.message);
+    console.error('Error al obtener asistencias:', error);
     throw error;
   }
 };
 
-// Función para marcar asistencia (entrada o salida)
+// Marcar asistencia (entrada/salida)
 export const marcarAsistencia = async (id_matricula, date, time) => {
   try {
-    const response = await axios.post(`${BASE_URL}/marcar_asistencia`, {
-      id_matricula,
-      date,
-      time,
-    });
+    const response = await axios.post(`${BASE_URL}/marcar_asistencia`, { id_matricula, date, time });
     return response.data;
   } catch (error) {
-    console.error('Error al marcar asistencia:', error.message);
+    console.error('Error al marcar asistencia:', error);
     throw error;
   }
 };
-
 // **Usuarios**
 
 // Función para obtener todos los usuarios registrados en el sistema
