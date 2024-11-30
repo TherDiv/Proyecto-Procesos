@@ -1,8 +1,8 @@
-// Tabs/Usuarios.js
 import React, { useEffect, useState } from 'react';
 import { obtenerUsuarios, crearUsuario } from '../api/api';
 import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box, TextField, Select, MenuItem } from '@mui/material';
 import AddUserDialog from '../Components/AddUserDialog';
+import dayjs from 'dayjs';
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -15,8 +15,26 @@ const Usuarios = () => {
   }, []);
 
   const cargarUsuarios = async () => {
-    const usuariosData = await obtenerUsuarios();
-    setUsuarios(usuariosData);
+    try {
+      const usuariosData = await obtenerUsuarios();
+
+      // Cambiar estado de membresía a "inactiva" si la fecha de fin de membresía ha pasado
+      const usuariosActualizados = usuariosData.map((usuario) => {
+        const fechaHoy = dayjs();
+        const fechaFin = dayjs(usuario.fin_membresia);
+
+        // Si la fecha de fin de membresía ha pasado, marcamos como "inactiva"
+        if (fechaHoy.isAfter(fechaFin)) {
+          usuario.estado_membresia = 'inactiva';
+        }
+
+        return usuario;
+      });
+
+      setUsuarios(usuariosActualizados);
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error.message);
+    }
   };
 
   const handleOpenDialog = () => setOpenDialog(true);

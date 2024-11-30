@@ -26,9 +26,7 @@ const Trabajadores = () => {
     setLoading(true); // Activamos el estado de carga
     try {
       const response = await axios.get('https://procesos-backend.vercel.app/api/trabajadores');
-      const trabajadores = response.data;
-      const entrenadores = trabajadores.filter((trabajador) => trabajador.cargo === 'entrenador');
-      setTrabajadores(entrenadores); // Solo se guardan los entrenadores
+      setTrabajadores(response.data); // Guardamos todos los trabajadores
     } catch (error) {
       console.error('Error al cargar trabajadores:', error);
       setErrorMessage('Error al cargar los trabajadores');

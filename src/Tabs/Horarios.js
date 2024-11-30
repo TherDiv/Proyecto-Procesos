@@ -30,17 +30,24 @@ const Horarios = () => {
   const cargarActividades = useCallback(async () => {
     try {
       const response = await axios.get(`${BASE_URL}/actividades`);
-      const data = response.data.actividades.map((actividad) => ({
-        id_actividad: actividad.id_actividad,
-        fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'), // Formatear fecha
-        hora_inicio: actividad.hora_inicio, // Horas ya están en formato HH:mm
-        hora_fin: actividad.hora_fin,
-        actividad: actividad.actividad,
-        profesor: actividad.profesor,
-        day: dayjs(actividad.fecha).format('dddd'),
-      }));
-      setActivities(data);
-      generarVistaSemanal(data);
+      console.log('Respuesta de actividades:', response.data); // Agregado para depuración
+
+      // Asegurándonos de que la respuesta tiene el formato esperado
+      if (response.data.actividades) {
+        const data = response.data.actividades.map((actividad) => ({
+          id_actividad: actividad.id_actividad,
+          fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'), // Formatear fecha
+          hora_inicio: actividad.hora_inicio, // Horas ya están en formato HH:mm
+          hora_fin: actividad.hora_fin,
+          actividad: actividad.actividad,
+          profesor: actividad.profesor,
+          day: dayjs(actividad.fecha).format('dddd'),
+        }));
+        setActivities(data);
+        generarVistaSemanal(data);
+      } else {
+        console.error('No se encontraron actividades en la respuesta');
+      }
     } catch (error) {
       console.error('Error al cargar actividades:', error);
     }
