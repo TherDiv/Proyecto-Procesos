@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from '@mui/material';
-
-const AddWorkerDialog = ({ open, onClose, onCrear }) => {
+const AddWorkerDialog = ({ open, onClose, onCrear, trabajadores }) => {
   const [newWorker, setNewWorker] = useState({
     name: '',
-    salaryType: '',
-    job: '',
+    salaryType: '',  // Asegúrate de que 'salaryType' sea correcto
+    job: '',          // El cargo, este debería ser un campo necesario
+    id_trabajador: '', // Este debería ser asignado solo si ya existe un trabajador, no debería ser editado aquí
   });
 
   const handleChange = (e) => {
@@ -16,9 +14,10 @@ const AddWorkerDialog = ({ open, onClose, onCrear }) => {
   };
 
   const handleCrear = () => {
+    // Validación de campos
     if (newWorker.name && newWorker.salaryType && newWorker.job) {
-      onCrear(newWorker);
-      setNewWorker({ name: '', salaryType: '', job: '' });
+      onCrear(newWorker);  // Enviar los datos al componente padre
+      setNewWorker({ name: '', salaryType: '', job: '', id_trabajador: '' });
       onClose();
     } else {
       alert('Todos los campos son obligatorios');
@@ -65,6 +64,21 @@ const AddWorkerDialog = ({ open, onClose, onCrear }) => {
           <MenuItem value="Seguridad">Seguridad</MenuItem>
           <MenuItem value="Profesor de baile">Profesor de baile</MenuItem>
         </TextField>
+
+        {/* Si el trabajador ya está asignado a un id, este no debería ser editable aquí */}
+        <Select
+          name="id_trabajador"
+          value={newWorker.id_trabajador || ''}
+          onChange={handleChange}
+          fullWidth
+          disabled  // Esta propiedad "disabled" lo hace no editable
+        >
+          {trabajadores.map((trabajador) => (
+            <MenuItem key={trabajador.id_trabajador} value={trabajador.id_trabajador}>
+              {trabajador.nombres} {trabajador.apellidos}
+            </MenuItem>
+          ))}
+        </Select>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="secondary">Cancelar</Button>
@@ -73,5 +87,3 @@ const AddWorkerDialog = ({ open, onClose, onCrear }) => {
     </Dialog>
   );
 };
-
-export default AddWorkerDialog;

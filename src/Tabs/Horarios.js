@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';  // Aseguramos la importación de useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -20,9 +20,10 @@ import axios from 'axios';
 const BASE_URL = 'https://procesos-backend.vercel.app/api';
 
 const Horarios = () => {
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
   const [activities, setActivities] = useState([]);
   const [weeklySchedule, setWeeklySchedule] = useState([]);
+  const [trabajadores, setTrabajadores] = useState([]);  // Aquí está la declaración del estado
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Cargar actividades desde el backend con useCallback para evitar que cambie en cada renderizado
@@ -43,7 +44,19 @@ const Horarios = () => {
     } catch (error) {
       console.error('Error al cargar actividades:', error);
     }
-  }, []);  // Se pasa [] para que la función no cambie entre renders
+  }, []);
+
+  // Cargar trabajadores desde el backend
+  const cargarTrabajadores = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/trabajadores`);
+      const trabajadoresData = response.data;
+      const entrenadores = trabajadoresData.filter((trabajador) => trabajador.cargo === 'entrenador');  // Filtrar solo entrenadores
+      setTrabajadores(entrenadores);  // Almacenar solo entrenadores en el estado
+    } catch (error) {
+      console.error('Error al cargar trabajadores:', error);
+    }
+  };
 
   // Generar la vista semanal
   const generarVistaSemanal = (actividades) => {
@@ -59,6 +72,7 @@ const Horarios = () => {
   // useEffect que depende de cargarActividades
   useEffect(() => {
     cargarActividades();  // Solo se ejecuta cuando el componente se monta
+    cargarTrabajadores();  // Cargar los trabajadores
   }, [cargarActividades]);  // Dependencia vacía asegura que se ejecute una sola vez
 
   // Agregar una nueva actividad
@@ -97,7 +111,10 @@ const Horarios = () => {
 
   return (
     <div>
-      <h1>Horarios de Actividades</h1>
+      <Typography variant="h4" gutterBottom>
+        Horarios de Actividades
+      </Typography>
+
       {/* Botón para añadir actividad */}
       <Box display="flex" justifyContent="flex-end" marginBottom={2}>
         <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
@@ -144,7 +161,7 @@ const Horarios = () => {
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
             label="Seleccionar semana"
-            value={selectedDate} // Debe ser un objeto válido de Dayjs
+            value={selectedDate} // Asegura que siempre sea un objeto valido de Dayjs
             onChange={(newValue) => setSelectedDate(newValue || dayjs())} // Asegura un valor por defecto
           />
         </LocalizationProvider>
@@ -187,6 +204,7 @@ const Horarios = () => {
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onCrear={handleAddActivity}
+        trabajadores={trabajadores}  // Aquí pasas los trabajadores filtrados
       />
     </div>
   );

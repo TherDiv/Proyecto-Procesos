@@ -95,6 +95,7 @@ export const obtenerActividades = async () => {
 
 export const crearActividad = async (actividad) => {
   try {
+    console.log("Datos de actividad a enviar:", actividad);
     const response = await axios.post(`${BASE_URL}/actividades`, actividad);
     return response.data;
   } catch (error) {
