@@ -9,6 +9,7 @@ import {
   Box,
   IconButton,
   Button,
+  TextField,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -20,7 +21,7 @@ import axios from 'axios';
 const BASE_URL = 'https://procesos-backend.vercel.app/api';
 
 const Horarios = () => {
-  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [selectedDate, setSelectedDate] = useState(dayjs()); // Fecha seleccionada para el DatePicker
   const [activities, setActivities] = useState([]);
   const [weeklySchedule, setWeeklySchedule] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);  // Aquí está la declaración del estado
@@ -30,14 +31,14 @@ const Horarios = () => {
   const cargarActividades = useCallback(async () => {
     try {
       const response = await axios.get(`${BASE_URL}/actividades`);
-      console.log('Respuesta de actividades:', response.data); // Agregado para depuración
+      console.log('Respuesta de actividades:', response.data);
 
       // Asegurándonos de que la respuesta tiene el formato esperado
       if (response.data.actividades) {
         const data = response.data.actividades.map((actividad) => ({
           id_actividad: actividad.id_actividad,
-          fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'), // Formatear fecha
-          hora_inicio: actividad.hora_inicio, // Horas ya están en formato HH:mm
+          fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'),
+          hora_inicio: actividad.hora_inicio,
           hora_fin: actividad.hora_fin,
           actividad: actividad.actividad,
           profesor: actividad.profesor,
@@ -58,7 +59,7 @@ const Horarios = () => {
     try {
       const response = await axios.get(`${BASE_URL}/trabajadores`);
       const trabajadoresData = response.data;
-      const entrenadores = trabajadoresData.filter((trabajador) => trabajador.cargo === 'entrenador');  // Filtrar solo entrenadores
+      const entrenadores = trabajadoresData.filter((trabajador) => trabajador.cargo === 'entrenador');
       setTrabajadores(entrenadores);  // Almacenar solo entrenadores en el estado
     } catch (error) {
       console.error('Error al cargar trabajadores:', error);
@@ -80,7 +81,7 @@ const Horarios = () => {
   useEffect(() => {
     cargarActividades();  // Solo se ejecuta cuando el componente se monta
     cargarTrabajadores();  // Cargar los trabajadores
-  }, [cargarActividades]);  // Dependencia vacía asegura que se ejecute una sola vez
+  }, [cargarActividades]);
 
   // Agregar una nueva actividad
   const handleAddActivity = async (newActivity) => {
@@ -118,58 +119,57 @@ const Horarios = () => {
 
   return (
     <div>
-      <Typography variant="h4" gutterBottom>
-        Horarios de Actividades
-      </Typography>
+      <h1>Horarios de Actividades</h1>
 
+      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
+  <Typography variant="h6" sx={{ marginRight: 2 }}>Lista de Actividades</Typography>
+  
       {/* Botón para añadir actividad */}
-      <Box display="flex" justifyContent="flex-end" marginBottom={2}>
-        <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
-          Añadir Actividad
-        </Button>
-      </Box>
+      <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
+        Añadir Actividad
+      </Button>
+    </Box>
 
-      {/* Lista de actividades */}
-      <Box mb={3}>
-        <Typography variant="h6">Lista de actividades por profesor</Typography>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Fecha</TableCell>
-              <TableCell>Hora</TableCell>
-              <TableCell>Actividad</TableCell>
-              <TableCell>Profesor</TableCell>
-              <TableCell>Eliminar</TableCell>
+    {/* Lista de actividades */}
+    <Box mb={3}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Fecha</TableCell>
+            <TableCell>Hora</TableCell>
+            <TableCell>Actividad</TableCell>
+            <TableCell>Profesor</TableCell>
+            <TableCell>Eliminar</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {activities.map((activity) => (
+            <TableRow key={activity.id_actividad}>
+              <TableCell>{activity.fecha}</TableCell>
+              <TableCell>{`${activity.hora_inicio} - ${activity.hora_fin}`}</TableCell>
+              <TableCell>{activity.actividad}</TableCell>
+              <TableCell>{activity.profesor}</TableCell>
+              <TableCell>
+                <IconButton onClick={() => handleDeleteActivity(activity.id_actividad)}>
+                  <DeleteIcon />
+                </IconButton>
+              </TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {activities.map((activity) => (
-              <TableRow key={activity.id_actividad}>
-                <TableCell>{activity.fecha}</TableCell>
-                <TableCell>{`${activity.hora_inicio} - ${activity.hora_fin}`}</TableCell>
-                <TableCell>{activity.actividad}</TableCell>
-                <TableCell>{activity.profesor}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleDeleteActivity(activity.id_actividad)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Box>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
 
       {/* Vista Semanal */}
       <Box display="flex" alignItems="center" mb={3}>
-        <Typography variant="h6" mr={2}>
-          Vista Semanal
-        </Typography>
+        <Typography variant="h6" sx={{ marginRight: 2 }}>Vista Semanal</Typography>
+        
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
             label="Seleccionar semana"
-            value={selectedDate} // Asegura que siempre sea un objeto valido de Dayjs
+            value={selectedDate} // Asegura que siempre sea un objeto válido de Dayjs
             onChange={(newValue) => setSelectedDate(newValue || dayjs())} // Asegura un valor por defecto
+            renderInput={(params) => <TextField {...params} sx={{ marginLeft: 1 }} />} // Agregar margen pequeño al input
           />
         </LocalizationProvider>
       </Box>

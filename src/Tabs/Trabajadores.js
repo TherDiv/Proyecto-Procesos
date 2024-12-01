@@ -66,14 +66,17 @@ const Trabajadores = () => {
   return (
     <div>
       <h1>Lista de Trabajadores</h1>
-      <Button variant="contained" color="primary" onClick={() => setOpenDialog(true)}>
-        Añadir Trabajador
-      </Button>
+      <Box display="flex" justifyContent="flex-start" marginBottom={2}>
+        <Button variant="contained" color="primary" onClick={() => setOpenDialog(true)}>
+          Añadir Trabajador
+        </Button>
+      </Box>
+
 
       {/* Tabla de trabajadores */}
       <Table>
         <TableHead>
-          <TableRow>
+          <TableRow >
             <TableCell>Nombre</TableCell>
             <TableCell>Apellido</TableCell>
             <TableCell>Cargo</TableCell>
