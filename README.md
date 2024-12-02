@@ -9,6 +9,7 @@ git clone https://github.com/TherDiv/Proyecto-Procesos.git
 git checkout -b develop origin/develop
 cd Proyecto-Procesos
 
+(No olvidar instalar el Node.js)
 npm install
 ```
 
