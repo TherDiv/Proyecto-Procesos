@@ -17,7 +17,7 @@ export const SidebarData = [
         link: "/asistencias"
     },
     {
-        title: "Usuarios",
+        title: "Miembros",
         icon: <GroupIcon />,
         link: "/usuarios"
     },

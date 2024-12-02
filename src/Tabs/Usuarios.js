@@ -55,11 +55,11 @@ const Usuarios = () => {
 
   return (
     <div>
-      <h1>Usuarios del gimnasio</h1>
+      <h1>Miembros del gimnasio</h1>
       <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom="20px">
         <Box display="flex" alignItems="center">
           <TextField
-            label="Buscar usuario"
+            label="Buscar miembro"
             variant="outlined"
             size="small"
             value={search}
@@ -80,7 +80,7 @@ const Usuarios = () => {
           </Select>
         </Box>
         <Button variant="contained" color="primary" onClick={handleOpenDialog}>
-          Añadir Usuario
+          Añadir Miembro
         </Button>
       </Box>
       <Table>

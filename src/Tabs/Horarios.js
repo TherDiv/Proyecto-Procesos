@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -16,149 +16,147 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddActivityDialog from '../Components/AddActivityDialog';
 import dayjs from 'dayjs';
-import axios from 'axios';
-
-const BASE_URL = 'https://procesos-backend.vercel.app/api';
+import { obtenerActividades, eliminarActividad, obtenerTrabajadores } from '../api/api'; // Importar las funciones del archivo api.js
 
 const Horarios = () => {
   const [selectedDate, setSelectedDate] = useState(dayjs()); // Fecha seleccionada para el DatePicker
-  const [activities, setActivities] = useState([]);
-  const [weeklySchedule, setWeeklySchedule] = useState([]);
-  const [trabajadores, setTrabajadores] = useState([]);  // Aquí está la declaración del estado
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activities, setActivities] = useState([]); // Actividades cargadas
+  const [weeklySchedule, setWeeklySchedule] = useState([]); // Horarios semanales
+  const [trabajadores, setTrabajadores] = useState([]); // Trabajadores (solo entrenadores)
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado del diálogo de añadir actividad
 
-  // Cargar actividades desde el backend con useCallback para evitar que cambie en cada renderizado
-  const cargarActividades = useCallback(async () => {
+  // Cargar actividades desde el backend
+  const cargarActividades = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/actividades`);
-      console.log('Respuesta de actividades:', response.data);
-
-      // Asegurándonos de que la respuesta tiene el formato esperado
-      if (response.data.actividades) {
-        const data = response.data.actividades.map((actividad) => ({
-          id_actividad: actividad.id_actividad,
-          fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'),
-          hora_inicio: actividad.hora_inicio,
-          hora_fin: actividad.hora_fin,
-          actividad: actividad.actividad,
-          profesor: actividad.profesor,
-          day: dayjs(actividad.fecha).format('dddd'),
-        }));
-        setActivities(data);
-        generarVistaSemanal(data);
-      } else {
-        console.error('No se encontraron actividades en la respuesta');
-      }
+      const actividades = await obtenerActividades();
+      const data = actividades.map((actividad) => ({
+        id_actividad: actividad.id_actividad,
+        fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'),
+        hora_inicio: dayjs(actividad.hora_inicio).format('HH:mm'),
+        hora_fin: dayjs(actividad.hora_fin).format('HH:mm'),
+        actividad: actividad.nombre_actividad || 'Actividad no disponible',
+        profesor: actividad.trabajadores ? actividad.trabajadores.nombre : 'Sin asignar',
+        day: dayjs(actividad.fecha).format('dddd'),
+      }));
+      setActivities(data);
+      generarVistaSemanal(data); // Actualiza la vista semanal
     } catch (error) {
       console.error('Error al cargar actividades:', error);
+      alert('Ocurrió un error al cargar las actividades. Intenta nuevamente más tarde.');
     }
-  }, []);
+  };
 
-  // Cargar trabajadores desde el backend
+  // Cargar trabajadores (solo entrenadores)
   const cargarTrabajadores = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/trabajadores`);
-      const trabajadoresData = response.data;
-      const entrenadores = trabajadoresData.filter((trabajador) => trabajador.cargo === 'entrenador');
-      setTrabajadores(entrenadores);  // Almacenar solo entrenadores en el estado
+      const trabajadoresData = await obtenerTrabajadores();
+      setTrabajadores(trabajadoresData);
     } catch (error) {
       console.error('Error al cargar trabajadores:', error);
+      alert('Ocurrió un error al cargar los trabajadores. Intenta nuevamente más tarde.');
     }
   };
 
   // Generar la vista semanal
   const generarVistaSemanal = (actividades) => {
-    const horariosSemanal = actividades.map((actividad) => ({
+    const startOfWeek = selectedDate.startOf('week').isoWeekday(1); // Empieza el lunes
+    const endOfWeek = selectedDate.endOf('week').isoWeekday(7); // Termina el domingo
+
+    const horariosSemanal = actividades.filter((actividad) => {
+      const actividadFecha = dayjs(actividad.fecha);
+      return actividadFecha.isBetween(startOfWeek, endOfWeek, null, '[]'); // Filtrar por semana
+    }).map((actividad) => ({
       day: dayjs(actividad.fecha).format('dddd'),
       time: `${actividad.hora_inicio} - ${actividad.hora_fin}`,
       activity: actividad.actividad,
       instructor: actividad.profesor,
     }));
+
     setWeeklySchedule(horariosSemanal);
   };
 
-  // useEffect que depende de cargarActividades
+  // useEffect para cargar datos al montar el componente
   useEffect(() => {
-    cargarActividades();  // Solo se ejecuta cuando el componente se monta
-    cargarTrabajadores();  // Cargar los trabajadores
-  }, [cargarActividades]);
+    cargarActividades(); // Cargar actividades al montar el componente o cambiar la fecha seleccionada
+    cargarTrabajadores(); // Cargar trabajadores (solo entrenadores)
+  }, [selectedDate]); // Vuelve a cargar las actividades si cambia la fecha seleccionada
 
   // Agregar una nueva actividad
   const handleAddActivity = async (newActivity) => {
     try {
-      const response = await axios.post(`${BASE_URL}/actividades`, newActivity);
-      console.log('Actividad añadida:', response.data);
+      // Llama la función de API para crear la actividad (no implementada en este ejemplo, solo llamada)
+      // await crearActividad(newActivity);
       cargarActividades(); // Vuelve a cargar las actividades después de añadir una nueva
     } catch (error) {
       console.error('Error al añadir actividad:', error);
+      alert('Ocurrió un error al añadir la actividad. Intenta nuevamente más tarde.');
     }
   };
 
   // Eliminar una actividad
   const handleDeleteActivity = async (id_actividad) => {
     try {
-      await axios.delete(`${BASE_URL}/actividades`, {
-        data: { id_actividad },
-      });
-      cargarActividades();  // Recarga las actividades después de eliminar una
+      await eliminarActividad(id_actividad);
+      cargarActividades(); // Recarga las actividades después de eliminar una
     } catch (error) {
       console.error('Error al eliminar actividad:', error);
+      alert('Ocurrió un error al eliminar la actividad. Intenta nuevamente más tarde.');
     }
   };
 
+  // Array con los días de la semana
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-  const timeSlots = [
-    '09:00 - 10:00',
-    '10:00 - 11:00',
-    '11:00 - 12:00',
-    '12:00 - 13:00',
-    '13:00 - 14:00',
-    '14:00 - 15:00',
-  ];
 
   return (
     <div>
       <h1>Horarios de Actividades</h1>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
-  <Typography variant="h6" sx={{ marginRight: 2 }}>Lista de Actividades</Typography>
-  
-      {/* Botón para añadir actividad */}
-      <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
-        Añadir Actividad
-      </Button>
-    </Box>
+        <Typography variant="h6" sx={{ marginRight: 2 }}>Lista de Actividades</Typography>
+        
+        {/* Botón para añadir actividad */}
+        <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
+          Añadir Actividad
+        </Button>
+      </Box>
 
-    {/* Lista de actividades */}
-    <Box mb={3}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Fecha</TableCell>
-            <TableCell>Hora</TableCell>
-            <TableCell>Actividad</TableCell>
-            <TableCell>Profesor</TableCell>
-            <TableCell>Eliminar</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {activities.map((activity) => (
-            <TableRow key={activity.id_actividad}>
-              <TableCell>{activity.fecha}</TableCell>
-              <TableCell>{`${activity.hora_inicio} - ${activity.hora_fin}`}</TableCell>
-              <TableCell>{activity.actividad}</TableCell>
-              <TableCell>{activity.profesor}</TableCell>
-              <TableCell>
-                <IconButton onClick={() => handleDeleteActivity(activity.id_actividad)}>
-                  <DeleteIcon />
-                </IconButton>
-              </TableCell>
+      {/* Lista de actividades */}
+      <Box mb={3}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Fecha</TableCell>
+              <TableCell>Hora</TableCell>
+              <TableCell>Actividad</TableCell>
+              <TableCell>Profesor</TableCell>
+              <TableCell>Eliminar</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Box>
+          </TableHead>
+          <TableBody>
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <TableRow key={activity.id_actividad}>
+                  <TableCell>{activity.fecha || 'Fecha no disponible'}</TableCell>
+                  <TableCell>{`${activity.hora_inicio} - ${activity.hora_fin}`}</TableCell>
+                  <TableCell>{activity.actividad}</TableCell>
+                  <TableCell>{activity.profesor}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleDeleteActivity(activity.id_actividad)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  No se encontraron actividades.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Box>
 
       {/* Vista Semanal */}
       <Box display="flex" alignItems="center" mb={3}>
@@ -167,51 +165,47 @@ const Horarios = () => {
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
             label="Seleccionar semana"
-            value={selectedDate} // Asegura que siempre sea un objeto válido de Dayjs
-            onChange={(newValue) => setSelectedDate(newValue || dayjs())} // Asegura un valor por defecto
-            renderInput={(params) => <TextField {...params} sx={{ marginLeft: 1 }} />} // Agregar margen pequeño al input
+            value={selectedDate} // Asegura que siempre sea un día
+            onChange={(newDate) => setSelectedDate(newDate)}
+            renderInput={(params) => <TextField {...params} />}
           />
         </LocalizationProvider>
       </Box>
 
+      {/* Mostrar los horarios semanales */}
       <Box>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell></TableCell> {/* Columna para los intervalos de tiempo */}
-              {daysOfWeek.map((day, index) => (
-                <TableCell key={index}>{day}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {timeSlots.map((time) => (
-              <TableRow key={time}>
-                <TableCell>{time}</TableCell>
-                {daysOfWeek.map((day) => (
-                  <TableCell key={day}>
-                    {weeklySchedule
-                      .filter((item) => item.day === day && item.time === time)
-                      .map((item, index) => (
-                        <Box key={index}>
-                          <Typography variant="subtitle2">{item.activity}</Typography>
-                          <Typography variant="body2">({item.instructor})</Typography>
-                        </Box>
-                      ))}
-                  </TableCell>
-                ))}
+        {weeklySchedule.length > 0 ? (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Día</TableCell>
+                <TableCell>Hora</TableCell>
+                <TableCell>Actividad</TableCell>
+                <TableCell>Instructor</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {weeklySchedule.map((schedule, index) => (
+                <TableRow key={index}>
+                  <TableCell>{schedule.day}</TableCell>
+                  <TableCell>{schedule.time}</TableCell>
+                  <TableCell>{schedule.activity}</TableCell>
+                  <TableCell>{schedule.instructor || 'Sin asignar'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <Typography>No hay actividades para esta semana.</Typography>
+        )}
       </Box>
 
-      {/* Diálogo para añadir actividad */}
+      {/* Diálogo para agregar actividad */}
       <AddActivityDialog
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onCrear={handleAddActivity}
-        trabajadores={trabajadores}  // Aquí pasas los trabajadores filtrados
+        onCrear={handleAddActivity} // Se pasa la función al dialogo
+        trabajadores={trabajadores} // Se pasan los trabajadores
       />
     </div>
   );

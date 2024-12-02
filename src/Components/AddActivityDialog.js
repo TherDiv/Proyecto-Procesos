@@ -1,172 +1,214 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, CircularProgress } from '@mui/material';
-import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+  Box,
+  IconButton,
+  Button,
+  TextField,
+} from '@mui/material';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddActivityDialog from '../Components/AddActivityDialog';
 import dayjs from 'dayjs';
-import axios from 'axios';
+import { obtenerActividades, eliminarActividad, obtenerTrabajadores } from '../api/api'; // Importar las funciones del archivo api.js
 
-const AddActivityDialog = ({ open, onClose, onCrear }) => {
-  const [newActivity, setNewActivity] = useState({
-    nombre_actividad: '',
-    descripcion: '',
-    fecha: dayjs(),
-    horaInicio: dayjs(),
-    horaFin: dayjs().add(1, 'hour'),
-    nombre_entrenador: '',  // Cambiado a nombre_entrenador
-  });
+const Horarios = () => {
+  const [selectedDate, setSelectedDate] = useState(dayjs()); // Fecha seleccionada para el DatePicker
+  const [activities, setActivities] = useState([]); // Actividades cargadas
+  const [weeklySchedule, setWeeklySchedule] = useState([]); // Horarios semanales
+  const [trabajadores, setTrabajadores] = useState([]); // Trabajadores (solo entrenadores)
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado del diálogo de añadir actividad
 
-  const [trabajadores, setTrabajadores] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Cargar actividades desde el backend
+  const cargarActividades = async () => {
+    try {
+      const actividades = await obtenerActividades();
+      const data = actividades.map((actividad) => ({
+        id_actividad: actividad.id_actividad,
+        fecha: dayjs(actividad.fecha).format('YYYY-MM-DD'),
+        hora_inicio: dayjs(actividad.hora_inicio).format('HH:mm'),
+        hora_fin: dayjs(actividad.hora_fin).format('HH:mm'),
+        actividad: actividad.nombre_actividad || 'Actividad no disponible',
+        profesor: actividad.trabajadores ? actividad.trabajadores.nombre : 'Sin asignar',
+        day: dayjs(actividad.fecha).format('dddd'),
+      }));
+      setActivities(data);
+      generarVistaSemanal(data); // Actualiza la vista semanal
+    } catch (error) {
+      console.error('Error al cargar actividades:', error);
+      alert('Ocurrió un error al cargar las actividades. Intenta nuevamente más tarde.');
+    }
+  };
 
-  // Obtener la lista de trabajadores
+  // Cargar trabajadores (solo entrenadores)
+  const cargarTrabajadores = async () => {
+    try {
+      const trabajadoresData = await obtenerTrabajadores();
+      setTrabajadores(trabajadoresData);
+    } catch (error) {
+      console.error('Error al cargar trabajadores:', error);
+      alert('Ocurrió un error al cargar los trabajadores. Intenta nuevamente más tarde.');
+    }
+  };
+
+  // Generar la vista semanal
+  const generarVistaSemanal = (actividades) => {
+    const startOfWeek = selectedDate.startOf('week').isoWeekday(1); // Empieza el lunes
+    const endOfWeek = selectedDate.endOf('week').isoWeekday(7); // Termina el domingo
+
+    const horariosSemanal = actividades.filter((actividad) => {
+      const actividadFecha = dayjs(actividad.fecha);
+      return actividadFecha.isBetween(startOfWeek, endOfWeek, null, '[]'); // Filtrar por semana
+    }).map((actividad) => ({
+      day: dayjs(actividad.fecha).format('dddd'),
+      time: `${actividad.hora_inicio} - ${actividad.hora_fin}`,
+      activity: actividad.actividad,
+      instructor: actividad.profesor,
+    }));
+
+    setWeeklySchedule(horariosSemanal);
+  };
+
+  // useEffect para cargar datos al montar el componente
   useEffect(() => {
-    const fetchTrabajadores = async () => {
-      setLoading(true);
-      console.log('Fetching trabajadores...');
-      try {
-        const response = await axios.get('https://procesos-backend.vercel.app/api/trabajadores');
-        // Filtrar solo los entrenadores
-        const entrenadores = response.data.filter(trabajador => trabajador.cargo === 'entrenador');
-        console.log('Trabajadores obtenidos:', entrenadores);
-        setTrabajadores(entrenadores);
-      } catch (error) {
-        setError('Error al obtener los trabajadores');
-        console.error('Error al obtener trabajadores:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    cargarActividades(); // Cargar actividades al montar el componente o cambiar la fecha seleccionada
+    cargarTrabajadores(); // Cargar trabajadores (solo entrenadores)
+  }, [selectedDate]); // Vuelve a cargar las actividades si cambia la fecha seleccionada
 
-    if (open) {
-      fetchTrabajadores();
-    }
-  }, [open]);
-
-  const handleChange = (field, value) => {
-    console.log(`Change detected for ${field}:`, value);
-    setNewActivity((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleCrearActividad = async () => {
-    if (
-      newActivity.nombre_actividad &&
-      newActivity.fecha &&
-      newActivity.horaInicio &&
-      newActivity.horaFin &&
-      newActivity.nombre_entrenador
-    ) {
-      // Validación de hora de fin
-      if (newActivity.horaFin.isBefore(newActivity.horaInicio)) {
-        alert('La hora de fin debe ser posterior a la hora de inicio.');
-        return;
-      }
-
-      const payload = {
-        id_gimnasio: 1,
-        nombre_actividad: newActivity.nombre_actividad,
-        descripcion: newActivity.descripcion,
-        horarios: [
-          {
-            fecha: newActivity.fecha.toISOString(),
-            hora_inicio: newActivity.horaInicio.toISOString(),
-            hora_fin: newActivity.horaFin.toISOString(),
-            nombre_entrenador: newActivity.nombre_entrenador,  // Enviar nombre_entrenador
-          },
-        ],
-      };
-
-      try {
-        const response = await axios.post('https://procesos-backend.vercel.app/api/actividades', payload);
-        console.log('Actividad creada:', response.data);
-        onCrear(response.data);
-        onClose();
-      } catch (error) {
-        console.error('Error al crear actividad:', error);
-        alert('Hubo un error al crear la actividad: ' + (error.response?.data?.message || error.message));
-      }
-    } else {
-      alert('Por favor, completa todos los campos');
+  // Agregar una nueva actividad
+  const handleAddActivity = async (newActivity) => {
+    try {
+      // Llama la función de API para crear la actividad (no implementada en este ejemplo, solo llamada)
+      // await crearActividad(newActivity);
+      cargarActividades(); // Vuelve a cargar las actividades después de añadir una nueva
+    } catch (error) {
+      console.error('Error al añadir actividad:', error);
+      alert('Ocurrió un error al añadir la actividad. Intenta nuevamente más tarde.');
     }
   };
 
-  console.log('Nuevo estado de la actividad:', newActivity);
-  console.log('Trabajadores disponibles:', trabajadores);
+  // Eliminar una actividad
+  const handleDeleteActivity = async (id_actividad) => {
+    try {
+      await eliminarActividad(id_actividad);
+      cargarActividades(); // Recarga las actividades después de eliminar una
+    } catch (error) {
+      console.error('Error al eliminar actividad:', error);
+      alert('Ocurrió un error al eliminar la actividad. Intenta nuevamente más tarde.');
+    }
+  };
+
+  // Array con los días de la semana
+  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Añadir Nueva Actividad</DialogTitle>
-      <DialogContent>
-        <Box display="flex" flexDirection="column" gap="16px">
-          <TextField
-            label="Nombre de la Actividad"
-            fullWidth
-            value={newActivity.nombre_actividad}
-            onChange={(e) => handleChange('nombre_actividad', e.target.value)}
-          />
-          <TextField
-            label="Descripción"
-            fullWidth
-            value={newActivity.descripcion}
-            onChange={(e) => handleChange('descripcion', e.target.value)}
-          />
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DatePicker
-              label="Fecha de la Actividad"
-              value={newActivity.fecha}
-              onChange={(newValue) => handleChange('fecha', newValue || dayjs())}
-              textField={<TextField fullWidth />}
-            />
-            <TimePicker
-              label="Hora de Inicio"
-              value={newActivity.horaInicio}
-              onChange={(newValue) => handleChange('horaInicio', newValue || dayjs())}
-              textField={<TextField fullWidth />}
-            />
-            <TimePicker
-              label="Hora de Fin"
-              value={newActivity.horaFin}
-              onChange={(newValue) => handleChange('horaFin', newValue || dayjs())}
-              textField={<TextField fullWidth />}
-            />
-          </LocalizationProvider>
+    <div>
+      <h1>Horarios de Actividades</h1>
 
-          {/* Campo para escribir el nombre del entrenador */}
-          <TextField
-            label="Nombre del Entrenador"
-            fullWidth
-            value={newActivity.nombre_entrenador}
-            onChange={(e) => handleChange('nombre_entrenador', e.target.value)}
-            select
-            SelectProps={{
-              native: true,
-            }}
-            helperText="Escribe el nombre del entrenador"
-          >
-            {trabajadores.length > 0 ? (
-              trabajadores.map((trabajador) => (
-                <option key={trabajador.id_trabajador} value={trabajador.nombres + ' ' + trabajador.apellidos}>
-                  {trabajador.nombres} {trabajador.apellidos}
-                </option>
-              ))
-            ) : (
-              <option>No hay entrenadores disponibles</option>
-            )}
-          </TextField>
-
-          {error && <Box color="error.main">{error}</Box>}
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="secondary">
-          Cancelar
-        </Button>
-        <Button onClick={handleCrearActividad} color="primary">
+      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
+        <Typography variant="h6" sx={{ marginRight: 2 }}>Lista de Actividades</Typography>
+        
+        {/* Botón para añadir actividad */}
+        <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
           Añadir Actividad
         </Button>
-      </DialogActions>
-    </Dialog>
+      </Box>
+
+      {/* Lista de actividades */}
+      <Box mb={3}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Fecha</TableCell>
+              <TableCell>Hora</TableCell>
+              <TableCell>Actividad</TableCell>
+              <TableCell>Profesor</TableCell>
+              <TableCell>Eliminar</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <TableRow key={activity.id_actividad}>
+                  <TableCell>{activity.fecha || 'Fecha no disponible'}</TableCell>
+                  <TableCell>{`${activity.hora_inicio} - ${activity.hora_fin}`}</TableCell>
+                  <TableCell>{activity.actividad}</TableCell>
+                  <TableCell>{activity.profesor}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleDeleteActivity(activity.id_actividad)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  No se encontraron actividades.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Box>
+
+      {/* Vista Semanal */}
+      <Box display="flex" alignItems="center" mb={3}>
+        <Typography variant="h6" sx={{ marginRight: 2 }}>Vista Semanal</Typography>
+        
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Seleccionar semana"
+            value={selectedDate} // Asegura que siempre sea un día
+            onChange={(newDate) => setSelectedDate(newDate)}
+            renderInput={(params) => <TextField {...params} />}
+          />
+        </LocalizationProvider>
+      </Box>
+
+      {/* Mostrar los horarios semanales */}
+      <Box>
+        {weeklySchedule.length > 0 ? (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Día</TableCell>
+                <TableCell>Hora</TableCell>
+                <TableCell>Actividad</TableCell>
+                <TableCell>Instructor</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {weeklySchedule.map((schedule, index) => (
+                <TableRow key={index}>
+                  <TableCell>{schedule.day}</TableCell>
+                  <TableCell>{schedule.time}</TableCell>
+                  <TableCell>{schedule.activity}</TableCell>
+                  <TableCell>{schedule.instructor || 'Sin asignar'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <Typography>No hay actividades para esta semana.</Typography>
+        )}
+      </Box>
+
+      {/* Diálogo para agregar actividad */}
+      <AddActivityDialog
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onAddActivity={handleAddActivity}
+        trabajadores={trabajadores}
+      />
+    </div>
   );
 };
 
-export default AddActivityDialog;
+export default Horarios;

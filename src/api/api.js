@@ -74,7 +74,6 @@ export const obtenerUsuarios = async () => {
 // Crear un nuevo usuario
 export const crearUsuario = async (nuevoUsuario) => {
   try {
-    // Formatear las fechas de inicio y fin de membresía
     const formattedUser = {
       ...nuevoUsuario,
       inicio_membresia: dayjs(nuevoUsuario.inicio_membresia).format('YYYY-MM-DD'),
@@ -89,26 +88,21 @@ export const crearUsuario = async (nuevoUsuario) => {
   }
 };
 
-// Obtener todas las actividades
+// Obtener actividades
 export const obtenerActividades = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/actividades`);
-    console.log('Respuesta de obtener actividades:', response);  // Ver la respuesta completa
-    return response.data.actividades;
+    const url = `${BASE_URL}/actividades`; // Concatenar BASE_URL con /actividades
+    console.log('URL de la API:', url); // Verificar la URL
+    const response = await axios.get(url);
+    return response.data;
   } catch (error) {
-    console.error('Error al obtener actividades:', error.message);
-    if (error.response) {
-      console.error('Detalles del error:', error.response.data);  // Detalles del error
-    }
-    throw new Error(error.response?.data?.message || 'Error al obtener actividades');
+    console.error('Error al obtener actividades:', error);
+    throw error;
   }
 };
 
-
-// Crear una nueva actividad
 export const crearActividad = async (actividad) => {
   try {
-    // Asegúrate de que las fechas están correctamente formateadas
     const actividadFormateada = {
       ...actividad,
       horarios: actividad.horarios.map((horario) => ({
@@ -128,6 +122,7 @@ export const crearActividad = async (actividad) => {
     throw new Error(error.response?.data?.message || 'Error al crear actividad');
   }
 };
+
 
 // Eliminar actividad por ID
 export const eliminarActividad = async (id_actividad) => {

@@ -1,87 +1,130 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import AddUserDialog from './AddUserDialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from '@mui/material';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
-// Mocking the functions
-const mockOnClose = jest.fn();
-const mockOnCrear = jest.fn();
+const AddUserDialog = ({ open, onClose, onCrear }) => {
+  // Estado inicial del nuevo usuario
+  const initialState = {
+    dni: '',
+    apellido: '',
+    nombre: '',
+    email: '',
+    telefono: '',
+    direccion: '',
+    fecha_registro: dayjs().format('YYYY-MM-DD'),
+    inicio_membresia: null,
+    fin_membresia: '',
+    tipo_membresia: '',
+  };
 
-describe('AddUserDialog', () => {
+  // Establecemos el estado del nuevo usuario
+  const [nuevoUsuario, setNuevoUsuario] = useState(initialState);
 
-  beforeEach(() => {
-    jest.clearAllMocks(); // Limpiar mocks antes de cada prueba
-  });
+  // Reseteamos los datos cuando el diálogo se abre
+  useEffect(() => {
+    if (open) {
+      setNuevoUsuario(initialState);  // Restablecemos el estado al valor inicial
+    }
+  }, [open]);  // Este efecto se ejecuta cada vez que 'open' cambie
 
-  test('should render the AddUserDialog and check initial inputs', () => {
-    render(<AddUserDialog open={true} onClose={mockOnClose} onCrear={mockOnCrear} />);
-
-    // Verificar si los campos están presentes en el formulario
-    expect(screen.getByLabelText(/Apellidos/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Nombres/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/DNI/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Correo Electrónico/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Teléfono/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Dirección/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Inicio de Membresía/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Tipo de Membresía/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Fin de Membresía/)).toBeInTheDocument();
-  });
-
-  test('should handle input changes correctly', () => {
-    render(<AddUserDialog open={true} onClose={mockOnClose} onCrear={mockOnCrear} />);
-
-    // Simulamos el cambio de valor de los campos
-    fireEvent.change(screen.getByLabelText(/Apellidos/), { target: { value: 'Perez' } });
-    fireEvent.change(screen.getByLabelText(/Nombres/), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByLabelText(/DNI/), { target: { value: '12345678' } });
-
-    // Verificar que los valores del estado se hayan actualizado
-    expect(screen.getByLabelText(/Apellidos/).value).toBe('Perez');
-    expect(screen.getByLabelText(/Nombres/).value).toBe('Juan');
-    expect(screen.getByLabelText(/DNI/).value).toBe('12345678');
-  });
-
-  test('should call onCrear when clicking the "Añadir Usuario" button', () => {
-    render(<AddUserDialog open={true} onClose={mockOnClose} onCrear={mockOnCrear} />);
-
-    // Simulamos los cambios en los campos
-    fireEvent.change(screen.getByLabelText(/Apellidos/), { target: { value: 'Perez' } });
-    fireEvent.change(screen.getByLabelText(/Nombres/), { target: { value: 'Juan' } });
-    fireEvent.change(screen.getByLabelText(/DNI/), { target: { value: '12345678' } });
-
-    // Hacemos clic en el botón "Añadir Usuario"
-    fireEvent.click(screen.getByText(/Añadir Usuario/));
-
-    // Verificar que la función onCrear haya sido llamada
-    expect(mockOnCrear).toHaveBeenCalledTimes(1);
-    expect(mockOnCrear).toHaveBeenCalledWith(expect.objectContaining({
-      apellido: 'Perez',
-      nombre: 'Juan',
-      dni: '12345678',
-    }));
-  });
-
-  test('should correctly calculate the membership end date when "Tipo de Membresía" is changed', async () => {
-    render(<AddUserDialog open={true} onClose={mockOnClose} onCrear={mockOnCrear} />);
-
-    // Simulamos la selección del tipo de membresía
-    fireEvent.change(screen.getByLabelText(/Tipo de Membresía/), { target: { value: 'mensual' } });
-
-    // Esperamos un pequeño retraso si es necesario (simulación de la actualización de la fecha)
-    await act(async () => {
-      // Verificamos que la fecha de fin de membresía se haya actualizado correctamente
-      expect(screen.getByLabelText(/Fin de Membresía/).value).toBe(dayjs().add(1, 'month').format('YYYY-MM-DD'));
+  const handleChange = (e) => {
+    setNuevoUsuario({
+      ...nuevoUsuario,
+      [e.target.name]: e.target.value,
     });
-  });
+  };
 
-  test('should call onClose when clicking the "Cancelar" button', () => {
-    render(<AddUserDialog open={true} onClose={mockOnClose} onCrear={mockOnCrear} />);
+  const handleFechaInicioChange = (date) => {
+    const formattedDate = date.format('YYYY-MM-DD');
+    setNuevoUsuario((prev) => {
+      const updatedState = { ...prev, inicio_membresia: formattedDate };
+      // Calcular fecha fin al cambiar la fecha de inicio
+      if (updatedState.tipo_membresia) {
+        updatedState.fin_membresia = calcularFechaFin(formattedDate, updatedState.tipo_membresia);
+      }
+      return updatedState;
+    });
+  };
 
-    // Simulamos el clic en el botón "Cancelar"
-    fireEvent.click(screen.getByText(/Cancelar/));
+  const handleTipoMembresiaChange = (value) => {
+    setNuevoUsuario((prev) => {
+      const updatedState = { ...prev, tipo_membresia: value };
+      // Solo calculamos la fecha de fin si ya existe la fecha de inicio
+      if (updatedState.inicio_membresia) {
+        updatedState.fin_membresia = calcularFechaFin(updatedState.inicio_membresia, value);
+      }
+      return updatedState;
+    });
+  };
 
-    // Verificamos que la función onClose haya sido llamada
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
-  });
+  const calcularFechaFin = (fechaInicio, tipoMembresia) => {
+    let fechaFin;
+    switch (tipoMembresia) {
+      case 'mensual':
+        fechaFin = dayjs(fechaInicio).add(1, 'month').format('YYYY-MM-DD');
+        break;
+      case 'trimestral':
+        fechaFin = dayjs(fechaInicio).add(3, 'month').format('YYYY-MM-DD');
+        break;
+      case 'semestral':
+        fechaFin = dayjs(fechaInicio).add(6, 'month').format('YYYY-MM-DD');
+        break;
+      case 'anual':
+        fechaFin = dayjs(fechaInicio).add(1, 'year').format('YYYY-MM-DD');
+        break;
+      default:
+        fechaFin = '';
+    }
+    return fechaFin;
+  };
 
-});
+  const handleCrearUsuario = () => {
+    onCrear(nuevoUsuario);
+    onClose(); // Cierra el diálogo después de crear el usuario
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle><strong>Crear Nuevo Miembro</strong></DialogTitle>
+      <DialogContent>
+        <TextField name="apellido" label="Apellidos" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.apellido} />
+        <TextField name="nombre" label="Nombres" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.nombre} />
+        <TextField name="dni" label="DNI" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.dni} />
+        <TextField name="email" label="Correo Electrónico" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.email} />
+        <TextField name="telefono" label="Teléfono" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.telefono} />
+        <TextField name="direccion" label="Dirección" fullWidth margin="dense" onChange={handleChange} value={nuevoUsuario.direccion} />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Inicio de Membresía"
+            value={dayjs(nuevoUsuario.inicio_membresia)}
+            onChange={handleFechaInicioChange}
+            format="YYYY-MM-DD"
+            renderInput={(params) => <TextField fullWidth margin="dense" {...params} />}
+          />
+        </LocalizationProvider>
+        <TextField
+          select
+          label="Tipo de Membresía"
+          fullWidth
+          margin="dense"
+          value={nuevoUsuario.tipo_membresia}
+          onChange={(e) => handleTipoMembresiaChange(e.target.value)}
+        >
+          <MenuItem value="mensual">Mensual</MenuItem>
+          <MenuItem value="trimestral">Trimestral</MenuItem>
+          <MenuItem value="semestral">Semestral</MenuItem>
+          <MenuItem value="anual">Anual</MenuItem>
+        </TextField>
+        <TextField name="fin_membresia" label="Fin de Membresía" fullWidth margin="dense" value={nuevoUsuario.fin_membresia} disabled />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="secondary">Cancelar</Button>
+        <Button onClick={handleCrearUsuario} color="primary">Añadir miembro</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default AddUserDialog;

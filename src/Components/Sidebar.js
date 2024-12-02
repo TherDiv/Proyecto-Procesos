@@ -1,10 +1,10 @@
 import React from "react";
 import "../App.css";
 import { SidebarData } from "./SidebarData";
-import { useLocation } from "react-router-dom"; // Importa useLocation para obtener la ruta actual
+import { useLocation } from "react-router-dom";
 
 function Sidebar() {
-  const location = useLocation(); // Obtén la ruta actual
+  const location = useLocation(); 
   
   return (
     <div className="Sidebar">
@@ -16,7 +16,7 @@ function Sidebar() {
           return (
             <li 
               key={key}
-              className={`row ${location.pathname === val.link ? 'active' : ''}`}  // Añade la clase 'active' si coincide la ruta actual
+              className={`row ${location.pathname === val.link ? 'active' : ''}`}  
               onClick={() => {
                 window.location.pathname = val.link;
               }}
