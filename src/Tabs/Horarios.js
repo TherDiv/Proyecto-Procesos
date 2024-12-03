@@ -16,7 +16,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddActivityDialog from '../Components/AddActivityDialog';
 import dayjs from 'dayjs';
-import { obtenerActividades, eliminarActividad, obtenerTrabajadores } from '../api/api'; // Importar las funciones del archivo api.js
+import { obtenerActividades, eliminarActividad, obtenerTrabajadores, crearActividad } from '../api/api'; // Importar las funciones del archivo api.js
 
 const Horarios = () => {
   const [selectedDate, setSelectedDate] = useState(dayjs()); // Fecha seleccionada para el DatePicker
@@ -25,7 +25,7 @@ const Horarios = () => {
   const [trabajadores, setTrabajadores] = useState([]); // Trabajadores (solo entrenadores)
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado del diálogo de añadir actividad
 
-  // Cargar actividades desde el backend
+  // Función para cargar actividades
   const cargarActividades = async () => {
     try {
       const actividades = await obtenerActividades();
@@ -35,7 +35,7 @@ const Horarios = () => {
         hora_inicio: dayjs(actividad.hora_inicio).format('HH:mm'),
         hora_fin: dayjs(actividad.hora_fin).format('HH:mm'),
         actividad: actividad.nombre_actividad || 'Actividad no disponible',
-        profesor: actividad.trabajadores ? actividad.trabajadores.nombre : 'Sin asignar',
+        profesor: actividad.trabajadores ? `${actividad.trabajadores.nombres} ${actividad.trabajadores.apellidos}` : 'Sin asignar',
         day: dayjs(actividad.fecha).format('dddd'),
       }));
       setActivities(data);
@@ -46,18 +46,22 @@ const Horarios = () => {
     }
   };
 
-  // Cargar trabajadores (solo entrenadores)
+  // Función para cargar trabajadores (solo entrenadores)
   const cargarTrabajadores = async () => {
     try {
       const trabajadoresData = await obtenerTrabajadores();
-      setTrabajadores(trabajadoresData);
+      // Corregir para que el id_trabajador sea un número y no una cadena
+      setTrabajadores(trabajadoresData.filter((trabajador) => trabajador.cargo === 'entrenador').map((trabajador) => ({
+        ...trabajador,
+        id_trabajador: Number(trabajador.id_trabajador), // Asegurarse de que el ID sea un número
+      })));
     } catch (error) {
       console.error('Error al cargar trabajadores:', error);
       alert('Ocurrió un error al cargar los trabajadores. Intenta nuevamente más tarde.');
     }
   };
 
-  // Generar la vista semanal
+  // Función para generar la vista semanal de actividades
   const generarVistaSemanal = (actividades) => {
     const startOfWeek = selectedDate.startOf('week').isoWeekday(1); // Empieza el lunes
     const endOfWeek = selectedDate.endOf('week').isoWeekday(7); // Termina el domingo
@@ -81,25 +85,40 @@ const Horarios = () => {
     cargarTrabajadores(); // Cargar trabajadores (solo entrenadores)
   }, [selectedDate]); // Vuelve a cargar las actividades si cambia la fecha seleccionada
 
-  // Agregar una nueva actividad
+  // Función para agregar una nueva actividad
   const handleAddActivity = async (newActivity) => {
     try {
-      // Llama la función de API para crear la actividad (no implementada en este ejemplo, solo llamada)
-      // await crearActividad(newActivity);
-      cargarActividades(); // Vuelve a cargar las actividades después de añadir una nueva
+      await crearActividad(newActivity);
+      cargarActividades(); // Recarga las actividades después de añadir una nueva
     } catch (error) {
       console.error('Error al añadir actividad:', error);
       alert('Ocurrió un error al añadir la actividad. Intenta nuevamente más tarde.');
     }
   };
 
-  // Eliminar una actividad
   const handleDeleteActivity = async (id_actividad) => {
     try {
-      await eliminarActividad(id_actividad);
-      cargarActividades(); // Recarga las actividades después de eliminar una
+      // Enviar solicitud DELETE al backend
+      const response = await fetch('https://procesos-backend.vercel.app/api/actividades', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_actividad }), // Pasar el id de la actividad como parámetro
+      });
+  
+      // Verificar la respuesta del servidor
+      const result = await response.json();
+  
+      // Solo proceder si la respuesta es exitosa
+      if (response.ok) {
+        console.log(result.message); // Mensaje de éxito
+        cargarActividades(); // Recargar las actividades después de la eliminación
+        alert('Actividad eliminada exitosamente.'); // Notificación de éxito
+      } 
     } catch (error) {
-      console.error('Error al eliminar actividad:', error);
+      // Manejo de errores en caso de fallo en la solicitud
+      console.error('Error en la solicitud de eliminación:', error);
       alert('Ocurrió un error al eliminar la actividad. Intenta nuevamente más tarde.');
     }
   };
@@ -190,7 +209,7 @@ const Horarios = () => {
                   <TableCell>{schedule.day}</TableCell>
                   <TableCell>{schedule.time}</TableCell>
                   <TableCell>{schedule.activity}</TableCell>
-                  <TableCell>{schedule.instructor || 'Sin asignar'}</TableCell>
+                  <TableCell>{schedule.instructor}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -204,8 +223,8 @@ const Horarios = () => {
       <AddActivityDialog
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onCrear={handleAddActivity} // Se pasa la función al dialogo
-        trabajadores={trabajadores} // Se pasan los trabajadores
+        onAddActivity={handleAddActivity}
+        trabajadores={trabajadores} // Pasamos la lista de trabajadores (entrenadores)
       />
     </div>
   );

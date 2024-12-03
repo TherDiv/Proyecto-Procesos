@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box, TextFiel
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { obtenerUsuarios, obtenerAsistencias, marcarAsistencia } from '../api/api';
+import { obtenerUsuarios, marcarAsistencia } from '../api/api'; // Importar las funciones desde api.js
 
 const Asistencias = () => {
   const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Fecha seleccionada en formato YYYY-MM-DD
@@ -34,41 +34,42 @@ const Asistencias = () => {
     setLoading(false);
   };
 
-  // Cargar asistencias para la fecha seleccionada
-  const cargarAsistencias = async (date) => {
-    try {
-      const formattedDate = dayjs(date).format('DD-MM-YYYY'); // Formatear fecha a DD-MM-YYYY
-      console.log('Fecha enviada al endpoint obtener_asistencias:', formattedDate); // Depuración
-      const data = await obtenerAsistencias(formattedDate);
-      setAsistencias(data || []);
-    } catch (error) {
-      console.error('Error al cargar asistencias:', error.message);
-    }
-  };
-
-  // Marcar asistencia (entrada o salida)
+  // Marcar asistencia (entrada o salida) usando la función de la API
   const handleMarcarAsistencia = async (id_matricula) => {
     try {
       const time = dayjs().format('HH:mm'); // Hora actual
       const formattedDate = dayjs(fecha).format('YYYY-MM-DD'); // Fecha formateada a YYYY-MM-DD
       console.log('Datos enviados al endpoint marcar_asistencia:', { id_matricula, date: formattedDate, time });
 
-      const response = await marcarAsistencia(id_matricula, formattedDate, time);
-      console.log('Respuesta del servidor:', response);
+      // Usar la función marcarAsistencia de api.js
+      const data = await marcarAsistencia(id_matricula, formattedDate, time);
+      console.log('Respuesta del servidor:', data);
 
       // Si la respuesta fue exitosa, actualizamos las asistencias
-      setAsistencias((prevAsistencias) => [
-        ...prevAsistencias,
-        {
-          id_matricula,
-          fecha: formattedDate,
-          hora_entrada: time,
-          hora_salida: null,
-          estado_asistencia: 'presente',
-        },
-      ]);
+      if (data?.message === 'Asistencia registrada con hora de entrada') {
+        setAsistencias((prevAsistencias) => [
+          ...prevAsistencias,
+          {
+            id_matricula,
+            fecha: formattedDate,
+            hora_entrada: time,
+            hora_salida: null,
+            estado_asistencia: 'presente',
+          },
+        ]);
+      } else if (data?.message === 'Asistencia registrada con hora de salida') {
+        setAsistencias((prevAsistencias) => {
+          const updatedAsistencias = prevAsistencias.map((asistencia) => {
+            if (asistencia.id_matricula === id_matricula && asistencia.fecha === formattedDate) {
+              return { ...asistencia, hora_salida: time };
+            }
+            return asistencia;
+          });
+          return updatedAsistencias;
+        });
+      }
     } catch (error) {
-      console.error('Error al marcar asistencia:', error.response?.data || error.message);
+      console.error('Error al marcar asistencia:', error.message);
     }
   };
 
@@ -76,23 +77,21 @@ const Asistencias = () => {
   const obtenerTablaAsistencias = () => {
     return usuarios.map((usuario) => {
       // Buscamos la asistencia para este usuario en la fecha seleccionada
-      const asistencia = asistencias.find((a) => a.id_matricula === usuario.dni);
+      const asistencia = asistencias.find((a) => a.id_matricula === usuario.id_matricula);
       return {
-        id_usuario: usuario.dni,
+        id_usuario: usuario.dni, // Usamos el DNI en vez de id_matricula
         nombre: usuario.nombres,
         apellido: usuario.apellidos,
-        email: usuario.email || '-',
         hora_entrada: asistencia?.hora_entrada || '-',
         hora_salida: asistencia?.hora_salida || '-',
-        id_matricula: usuario.dni,
+        id_matricula: usuario.id_matricula,
       };
     });
   };
 
-  // Llamadas a cargar usuarios y asistencias cuando cambia la fecha seleccionada
+  // Llamadas a cargar usuarios cuando cambia la fecha seleccionada
   useEffect(() => {
     cargarUsuarios();
-    cargarAsistencias(fecha);
   }, [fecha]);
 
   return (
@@ -117,10 +116,9 @@ const Asistencias = () => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>ID Usuario</TableCell>
+            <TableCell>DNI Usuario</TableCell>
             <TableCell>Nombre</TableCell>
             <TableCell>Apellido</TableCell>
-            <TableCell>Email</TableCell>
             <TableCell>Hora Entrada</TableCell>
             <TableCell>Hora Salida</TableCell>
             <TableCell>Acciones</TableCell>
@@ -129,7 +127,7 @@ const Asistencias = () => {
         <TableBody>
           {usuarios.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7}>No hay usuarios activos en esta fecha</TableCell>
+              <TableCell colSpan={6}>No hay usuarios activos en esta fecha</TableCell>
             </TableRow>
           ) : (
             obtenerTablaAsistencias().map((usuario, index) => (
@@ -137,7 +135,6 @@ const Asistencias = () => {
                 <TableCell>{usuario.id_usuario}</TableCell>
                 <TableCell>{usuario.nombre}</TableCell>
                 <TableCell>{usuario.apellido}</TableCell>
-                <TableCell>{usuario.email}</TableCell>
                 <TableCell>{usuario.hora_entrada}</TableCell>
                 <TableCell>{usuario.hora_salida}</TableCell>
                 <TableCell>

@@ -9,8 +9,8 @@ export const obtenerTrabajadores = async () => {
     const response = await axios.get(`${BASE_URL}/trabajadores`);
     return response.data;
   } catch (error) {
-    console.error('Error al obtener trabajadores:', error.message);
-    throw new Error(error.response?.data?.message || 'Error al obtener trabajadores');
+    console.error('Error al obtener trabajadores:', error);
+    throw error;
   }
 };
 
@@ -25,11 +25,10 @@ export const crearTrabajador = async (nuevoTrabajador) => {
   }
 };
 
-// Obtener asistencias para una fecha
 export const obtenerAsistencias = async (date) => {
   try {
-    const response = await axios.get(`${BASE_URL}/obtener_asistencias`, {
-      params: { date },
+    const response = await axios.post(`${BASE_URL}/obtener_asistencias`, {
+      date, // Pasar la fecha en el cuerpo de la solicitud
     });
     return response.data;
   } catch (error) {
@@ -41,10 +40,16 @@ export const obtenerAsistencias = async (date) => {
   }
 };
 
+// Marcar asistencia de un usuario (POST)
 // Marcar asistencia de un usuario
 export const marcarAsistencia = async (id_matricula, date, time) => {
   try {
+    if (!id_matricula || isNaN(id_matricula)) {
+      throw new Error('El id_matricula debe ser un número válido');
+    }
+
     console.log('Enviando datos a marcar_asistencia:', { id_matricula, date, time });
+
     const response = await axios.post(`${BASE_URL}/marcar_asistencia`, {
       id_matricula,
       date,
@@ -59,6 +64,8 @@ export const marcarAsistencia = async (id_matricula, date, time) => {
     throw new Error(error.response?.data?.message || 'Error al marcar asistencia');
   }
 };
+
+
 
 // Obtener todos los usuarios
 export const obtenerUsuarios = async () => {
@@ -91,7 +98,7 @@ export const crearUsuario = async (nuevoUsuario) => {
 // Obtener actividades
 export const obtenerActividades = async () => {
   try {
-    const url = `${BASE_URL}/actividades`; // Concatenar BASE_URL con /actividades
+    const url = `${BASE_URL}/actividades`; // Usar BASE_URL correctamente
     console.log('URL de la API:', url); // Verificar la URL
     const response = await axios.get(url);
     return response.data;
@@ -101,38 +108,29 @@ export const obtenerActividades = async () => {
   }
 };
 
-export const crearActividad = async (actividad) => {
+// Crear actividad
+export const crearActividad = async (newActivity) => {
   try {
-    const actividadFormateada = {
-      ...actividad,
-      horarios: actividad.horarios.map((horario) => ({
-        ...horario,
-        fecha: dayjs(horario.fecha).toISOString(), // Convertir fecha al formato ISO
-        hora_inicio: dayjs(horario.hora_inicio).toISOString(), // Formatear hora de inicio
-        hora_fin: dayjs(horario.hora_fin).toISOString(), // Formatear hora de fin
-      })),
-    };
-
-    console.log("Datos de actividad a enviar:", actividadFormateada);
-
-    const response = await axios.post(`${BASE_URL}/actividades`, actividadFormateada);
+    console.log('Enviando actividad:', newActivity); // Verificar los datos antes de enviarlos
+    const response = await axios.post(`${BASE_URL}/actividades`, newActivity); // Usar BASE_URL
+    console.log('Respuesta de la API:', response); // Verificar la respuesta
     return response.data;
   } catch (error) {
-    console.error('Error al crear actividad:', error.message);
+    console.error('Error al crear actividad:', error.response?.data || error.message); // Ver detalle del error
+    if (error.response?.data) {
+      console.error('Detalles del error del servidor:', error.response.data);
+    }
     throw new Error(error.response?.data?.message || 'Error al crear actividad');
   }
 };
 
-
 // Eliminar actividad por ID
 export const eliminarActividad = async (id_actividad) => {
   try {
-    const response = await axios.delete(`${BASE_URL}/actividades`, {
-      data: { id_actividad },
-    });
+    const response = await axios.delete(`${BASE_URL}/actividades/${id_actividad}`); // ID se pasa directamente en la URL
     return response.data;
   } catch (error) {
-    console.error('Error al eliminar actividad:', error.message);
+    console.error('Error al eliminar actividad:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Error al eliminar actividad');
   }
 };

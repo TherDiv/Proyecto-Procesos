@@ -87,14 +87,13 @@ app.post('/api/marcar_asistencia', async (req, res) => {
             const nuevaAsistencia = await prisma.asistencias.create({
                 data: {
                     fecha,
-                    hora_entrada: horaEvento, // Verifica si esta hora es correcta
+                    hora_entrada: horaEvento,
                     estado_asistencia: 'presente',
                     matriculas: { connect: { id_matricula: matriculaId } },
                 },
             });
             return res.json({ message: 'Asistencia registrada con hora de entrada', asistencia: nuevaAsistencia });
         }
-        
 
         if (!asistenciaExistente.hora_salida) {
             const asistenciaActualizada = await prisma.asistencias.update({
@@ -168,29 +167,29 @@ app.post('/api/crear_usuario', async (req, res) => {
     }
 
     try {
-        const nuevoUsuario = await prisma.usuario.create({
-            data: { dni, apellido, nombre, email, telefono, direccion, fecha_registro: dayjs(fecha_registro).toDate() },
-        });
-
-        const nuevaMembresia = await prisma.membresias.create({
-            data: {
-                id_usuario: nuevoUsuario.id_usuario,
-                id_tipo_membresia,
-                id_gimnasio: 1,
-                fecha_inicio: dayjs(inicio_membresia).toDate(),
-                fecha_vencimiento: dayjs(fin_membresia).toDate(),
-            },
-        });
-
-        await prisma.matriculas.create({
-            data: {
-                id_usuario: nuevoUsuario.id_usuario,
-                id_membresia: nuevaMembresia.id_membresia,
-                id_gimnasio: 1,
-                fecha_matricula: dayjs(inicio_membresia).toDate(),
-                estado_matricula: 'activa',
-            },
-        });
+        const transaction = await prisma.$transaction([
+            prisma.usuario.create({
+                data: { dni, apellido, nombre, email, telefono, direccion, fecha_registro: dayjs(fecha_registro).toDate() },
+            }),
+            prisma.membresias.create({
+                data: {
+                    id_usuario: nuevoUsuario.id_usuario,
+                    id_tipo_membresia,
+                    id_gimnasio: 1,
+                    fecha_inicio: dayjs(inicio_membresia).toDate(),
+                    fecha_vencimiento: dayjs(fin_membresia).toDate(),
+                },
+            }),
+            prisma.matriculas.create({
+                data: {
+                    id_usuario: nuevoUsuario.id_usuario,
+                    id_membresia: nuevaMembresia.id_membresia,
+                    id_gimnasio: 1,
+                    fecha_matricula: dayjs(inicio_membresia).toDate(),
+                    estado_matricula: 'activa',
+                },
+            }),
+        ]);
 
         res.status(201).json({ message: 'Usuario creado exitosamente', id_usuario: nuevoUsuario.id_usuario });
     } catch (error) {
