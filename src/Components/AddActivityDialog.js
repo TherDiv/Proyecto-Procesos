@@ -7,26 +7,25 @@ import { obtenerTrabajadores, crearActividad } from '..//api/api'; // Importa la
 
 const AddActivityDialog = ({ open, onClose, onCrear }) => {
   const [newActivity, setNewActivity] = useState({
-    nombre_actividad: '', // Nombre de la actividad
-    descripcion: '', // Descripción de la actividad
-    fecha: dayjs(), // Fecha seleccionada para la actividad
-    horaInicio: dayjs(), // Hora de inicio
-    horaFin: dayjs().add(1, 'hour'), // Hora de fin (1 hora después de la hora de inicio)
-    id_entrenador: '', // ID del entrenador
+    nombre_actividad: '',
+    descripcion: '',
+    fecha: dayjs(),
+    horaInicio: dayjs(),
+    horaFin: dayjs().add(1, 'hour'),
+    id_entrenador: '',
   });
 
-  const [trabajadores, setTrabajadores] = useState([]); // Lista de entrenadores
-  const [loading, setLoading] = useState(false); // Cargando la lista de trabajadores
-  const [errorMessage, setErrorMessage] = useState(''); // Mensajes de error
-  const [successMessage, setSuccessMessage] = useState(''); // Mensaje de éxito
+  const [trabajadores, setTrabajadores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Obtener la lista de trabajadores
   useEffect(() => {
     const fetchTrabajadores = async () => {
       setLoading(true);
       try {
-        const trabajadores = await obtenerTrabajadores(); // Usa la función de api.js
-        setTrabajadores(trabajadores.filter(trabajador => trabajador.cargo === 'entrenador'));
+        const trabajadores = await obtenerTrabajadores();
+        setTrabajadores(trabajadores.filter((trabajador) => trabajador.cargo === 'entrenador'));
       } catch (error) {
         setErrorMessage('Error al obtener los trabajadores');
       } finally {
@@ -36,27 +35,34 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
 
     if (open) {
       fetchTrabajadores();
+      setErrorMessage('');
+      setSuccessMessage('');
+      setNewActivity({
+        nombre_actividad: '',
+        descripcion: '',
+        fecha: dayjs(),
+        horaInicio: dayjs(),
+        horaFin: dayjs().add(1, 'hour'),
+        id_entrenador: '',
+      });
     }
   }, [open]);
 
-  // Manejar cambios en los campos
   const handleChange = (field, value) => {
     setNewActivity((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Manejar la creación de la actividad
   const handleCrearActividad = async () => {
-    // Validar los campos
     if (!newActivity.nombre_actividad || !newActivity.descripcion || !newActivity.id_entrenador) {
       setErrorMessage('Por favor, completa todos los campos');
       return;
     }
-  
+
     if (newActivity.horaFin.isBefore(newActivity.horaInicio)) {
       setErrorMessage('La hora de fin debe ser posterior a la hora de inicio.');
       return;
     }
-  
+
     const payload = {
       id_gimnasio: 1,
       nombre_actividad: newActivity.nombre_actividad,
@@ -66,17 +72,18 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
           fecha: newActivity.fecha.toISOString(),
           hora_inicio: newActivity.horaInicio.format('YYYY-MM-DDTHH:mm:ss'),
           hora_fin: newActivity.horaFin.format('YYYY-MM-DDTHH:mm:ss'),
-          id_trabajador: Number(newActivity.id_entrenador), // Asegúrate de convertir a número
+          id_trabajador: Number(newActivity.id_entrenador),
         },
       ],
     };
 
     try {
-      const response = await crearActividad(payload); // Usa la función de api.js
-      onCrear(response);
+      const response = await crearActividad(payload);
+      if (onCrear) onCrear(response.actividad); // Asegúrate de que onCrear es una función válida
       setSuccessMessage('Actividad creada con éxito');
-      onClose();
+      setTimeout(onClose, 1000); // Cierra el diálogo después de mostrar el mensaje de éxito
     } catch (error) {
+      console.error('Error al crear actividad:', error);
       setErrorMessage('Hubo un error al crear la actividad');
     }
   };
@@ -118,8 +125,6 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
               renderInput={(params) => <TextField fullWidth {...params} />}
             />
           </LocalizationProvider>
-
-          {/* Selección de entrenador */}
           <TextField
             label="Entrenador"
             fullWidth
@@ -138,15 +143,11 @@ const AddActivityDialog = ({ open, onClose, onCrear }) => {
               <option>No hay entrenadores disponibles</option>
             )}
           </TextField>
-
-          {/* Mostrar mensaje de error */}
           {errorMessage && (
             <Snackbar open={true} autoHideDuration={6000}>
               <Alert severity="error">{errorMessage}</Alert>
             </Snackbar>
           )}
-
-          {/* Mostrar mensaje de éxito */}
           {successMessage && (
             <Snackbar open={true} autoHideDuration={6000}>
               <Alert severity="success">{successMessage}</Alert>

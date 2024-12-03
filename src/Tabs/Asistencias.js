@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableRow, Button, Box, TextFiel
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { obtenerUsuarios, marcarAsistencia } from '../api/api'; // Importar las funciones desde api.js
+import { obtenerUsuarios, marcarAsistencia, obtenerAsistencias } from '../api/api'; // Importar las funciones necesarias
 
 const Asistencias = () => {
   const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD')); // Fecha seleccionada en formato YYYY-MM-DD
@@ -32,6 +32,17 @@ const Asistencias = () => {
       console.error('Error al cargar usuarios:', error.message);
     }
     setLoading(false);
+  };
+
+  // Obtener asistencias de la API
+  const cargarAsistencias = async () => {
+    try {
+      const data = await obtenerAsistencias({ date: fecha });
+      console.log('Datos de asistencias obtenidos:', data);
+      setAsistencias(data);
+    } catch (error) {
+      console.error('Error al cargar asistencias:', error.message);
+    }
   };
 
   // Marcar asistencia (entrada o salida) usando la función de la API
@@ -89,9 +100,10 @@ const Asistencias = () => {
     });
   };
 
-  // Llamadas a cargar usuarios cuando cambia la fecha seleccionada
+  // Llamadas a cargar usuarios y asistencias cuando cambia la fecha seleccionada
   useEffect(() => {
     cargarUsuarios();
+    cargarAsistencias(); // Llamada para obtener asistencias
   }, [fecha]);
 
   return (

@@ -73,17 +73,20 @@ app.post('/api/marcar_asistencia', async (req, res) => {
         const matriculaId = parseInt(id_matricula, 10);
         const fecha = dayjs(date).startOf('day').toDate();
         const [hours, minutes] = time.split(':').map(Number);
-        const horaEvento = dayjs(fecha).hour(hours).minute(minutes).second(0).toDate();
 
         if (isNaN(matriculaId)) {
             return res.status(400).json({ message: 'El id_matricula debe ser un número válido' });
         }
+
+        // Convertimos la hora y minuto a un objeto Date
+        const horaEvento = dayjs(fecha).hour(hours).minute(minutes).second(0).toDate();
 
         const asistenciaExistente = await prisma.asistencias.findFirst({
             where: { matriculas: { id_matricula: matriculaId }, fecha },
         });
 
         if (!asistenciaExistente) {
+            // Si no existe asistencia para esa fecha, registramos la hora de entrada
             const nuevaAsistencia = await prisma.asistencias.create({
                 data: {
                     fecha,
@@ -96,6 +99,7 @@ app.post('/api/marcar_asistencia', async (req, res) => {
         }
 
         if (!asistenciaExistente.hora_salida) {
+            // Si ya existe una entrada pero no una salida, registramos la hora de salida
             const asistenciaActualizada = await prisma.asistencias.update({
                 where: { id_asistencia: asistenciaExistente.id_asistencia },
                 data: { hora_salida: horaEvento },
@@ -103,6 +107,7 @@ app.post('/api/marcar_asistencia', async (req, res) => {
             return res.json({ message: 'Asistencia registrada con hora de salida', asistencia: asistenciaActualizada });
         }
 
+        // Si ya tiene tanto hora de entrada como salida, indicamos que la asistencia está completa
         res.status(400).json({ message: 'La asistencia para esta fecha ya está completa' });
     } catch (error) {
         console.error(error);
