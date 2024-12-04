@@ -36,9 +36,10 @@ const Asistencias = () => {
 
   // Obtener asistencias de la API
   const cargarAsistencias = async () => {
+    console.log('Datos enviados para obtener asistencias:', { date: fecha });
     try {
       const data = await obtenerAsistencias({ date: fecha });
-      console.log('Datos de asistencias obtenidos:', data);
+      console.log('Asistencias recibidas:', data);
       setAsistencias(data);
     } catch (error) {
       console.error('Error al cargar asistencias:', error.message);
